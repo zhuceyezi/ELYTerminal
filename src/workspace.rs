@@ -20,14 +20,11 @@ use crate::{
     git::panel::{Acted, GitPanel},
     menus,
     sessions::{self, Session, orb},
-    settings::{PanelTab, Settings, SettingsStore, StartIn, window::OpenSettings},
-    term::{
-        Events, Launch, Pty, TerminalView, config,
-        shell::{ShellIntegration, launch},
-        spawn,
-    },
+    settings::{PanelTab, Settings, SettingsStore, window::OpenSettings},
+    term::{Events, Launch, Pty, TerminalView},
 };
 
+mod creation;
 mod events;
 mod rename;
 mod widths;
@@ -191,31 +188,6 @@ impl Workspace {
                 }
             })
         });
-    }
-
-    /// A session of the shell the settings name, in home or the shown session's folder.
-    fn new_session(&mut self, window: &mut Window, cx: &mut Context<Self>) {
-        let Some(home) = dirs::home_dir() else {
-            log::error!("app: no home folder, so no new session");
-            return;
-        };
-        let settings = SettingsStore::get(cx);
-        let folder = match settings.start_in {
-            StartIn::Home => home,
-            StartIn::Session => self
-                .sessions
-                .get(self.active)
-                .map_or(home, |session| session.folder.clone()),
-        };
-        let started = launch(&settings.shell, folder, &cx.global::<ShellIntegration>().0)
-            .and_then(|launch| Ok((spawn(&launch, (80, 24), (8, 16), config(settings))?, launch)));
-        match started {
-            Ok(((pty, events), launch)) => {
-                self.add(pty, events, launch, window, cx);
-                self.select(self.sessions.len() - 1, window, cx);
-            }
-            Err(error) => log::error!("app: no new session: {error:#}"),
-        }
     }
 
     /// Shows session `index`, clears its bell and its waiting mark, and gives its terminal the keys.

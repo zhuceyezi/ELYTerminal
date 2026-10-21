@@ -371,7 +371,9 @@ fn bash_says_why_it_marks_no_command_without_promptvars() {
 
 #[test]
 fn fish_loads_its_script_and_restores_its_data_dirs() {
-    let mut run = Run::start(&installed("fish"), &[]);
+    let prompt = "function fish_prompt; set -l kept $status; printf '[%s]>' $kept; end";
+    let files = [(".config/fish/functions/fish_prompt.fish", prompt)];
+    let mut run = Run::start(&installed("fish"), &files);
     run.walk("functions -q _ely_prompt; and echo ELY-LOAD''ED");
     let previous = env::var("XDG_DATA_DIRS").unwrap_or_default();
     run.send(r#"echo "DIRS[$ELY_FISH_XDG_DATA_DIRS][$XDG_DATA_DIRS]""#);

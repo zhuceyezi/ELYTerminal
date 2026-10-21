@@ -1,5 +1,7 @@
 # ELYTerminal
 
+Linux window-reuse fork on the `linux-window-reuse` branch, based on upstream v0.1.7. The `main` branch remains available for upstream synchronization. See [UPSTREAM.md](UPSTREAM.md) for preserving history and merging updates from the original Gitea server.
+
 A terminal for macOS, Windows and Linux, in Rust on GPUI and Ely components. Sessions sit on the left, the terminal in the middle, Git or Files on the right. Every setting has a control in the settings window.
 
 ## Install
@@ -19,6 +21,27 @@ install -Dm644 com.zacharyzhang.elyterminal.svg -t ~/.local/share/icons/hicolor/
 ```
 
 The desktop entry runs `elyterminal`, so `~/.local/bin` must be on `PATH`.
+
+## Linux window reuse
+
+On Linux, launching ELYTerminal again adds a session to the most recently active terminal window.
+The first invocation owns a socket in a private directory under `XDG_RUNTIME_DIR`.
+An invocation waits for the owner to create its session and reports a failed launch to stderr.
+Windows and macOS keep their existing startup behavior.
+
+```sh
+elyterminal                                      # a session in the caller's directory
+elyterminal --working-directory '/path/to/folder' # an explicit directory
+elyterminal --new-window                         # a separate window
+elyterminal -e htop                               # a program in the reused window
+elyterminal -e 'printf hello; sleep 5'             # one string runs through /bin/sh -c
+```
+
+`--workdir` and `--directory` are aliases for `--working-directory`; each accepts `=PATH` too.
+With `-e` or `--command`, multiple arguments name a program and its literal arguments.
+The program's exit closes its session. The in-window new-session shortcut still follows Settings › Terminal › Start in.
+Desktop activation tokens travel with each request, so KDE Wayland can raise the existing window.
+The desktop entry and Dolphin can call the binary directly; no fish startup hook is required.
 
 ## Build and run
 

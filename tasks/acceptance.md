@@ -210,3 +210,14 @@ On 2026-10-16 the owner ran it on Omarchy 4.0.4 under Hyprland:
 - The v0.1.1 Linux tarball built from `aae7fba`, installed by hand, wore the Omarchy theme.
 
 On 2026-10-16 the owner ran v0.1.2 on Windows: dragged to a new size, closed and opened again, the window opened at that size.
+
+## Linux window reuse
+
+- [x] The first external launch opens one window; later launches add exactly one selected session.
+- [x] Concurrent launches share one owner and preserve each launch's directory and command.
+- [x] `--new-window` opens another window; later ordinary launches target the last active terminal window.
+- [x] Dolphin and directory arguments work with spaces, Chinese, quotes and literal shell metacharacters.
+- [x] KDE shortcuts and the application menu reuse the window, including while minimized.
+- [x] A failed launch reports its error and leaves existing sessions intact.
+- [x] A crashed owner can be restarted despite its stale socket.
+- [x] The in-window new, select and close shortcuts keep working.

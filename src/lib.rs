@@ -6,6 +6,8 @@ pub mod menus;
 pub mod pet;
 pub mod sessions;
 pub mod settings;
+#[cfg(target_os = "linux")]
+pub mod startup;
 pub mod term;
 #[cfg(all(test, unix))]
 mod testlog;

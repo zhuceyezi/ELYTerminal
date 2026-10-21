@@ -140,6 +140,8 @@ pub fn open(launch: Launch, cx: &mut App) -> anyhow::Result<WindowHandle<Workspa
             Workspace::new(pty, events, launch, window, cx)
         })
     })?;
+    #[cfg(target_os = "linux")]
+    crate::startup::track(window, cx)?;
     crate::pet::follow(window, cx);
     log::info!(
         "app: main window open at {} by {}, blur: {background:?} on {}",
