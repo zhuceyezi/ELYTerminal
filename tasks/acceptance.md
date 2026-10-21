@@ -221,3 +221,12 @@ On 2026-10-16 the owner ran v0.1.2 on Windows: dragged to a new size, closed and
 - [x] A failed launch reports its error and leaves existing sessions intact.
 - [x] A crashed owner can be restarted despite its stale socket.
 - [x] The in-window new, select and close shortcuts keep working.
+
+## Detachable sessions
+
+- [x] Dragging a sidebar session beyond the window edge opens a separate window.
+- [x] The terminal entity, PTY PID, live program, name and directory survive migration.
+- [x] Keyboard input, focus, folder/title events and program exit route to the new window.
+- [x] Releasing inside the window and Escape before detachment cancel the gesture.
+- [x] Dragging the only session moves its existing window.
+- [x] A programmatic last-session transfer closes its source after the destination is populated.

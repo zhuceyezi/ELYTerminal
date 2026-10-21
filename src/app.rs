@@ -109,10 +109,35 @@ pub fn start(cx: &mut App) -> anyhow::Result<()> {
 
 /// Opens the main window running `launch`.
 pub fn open(launch: Launch, cx: &mut App) -> anyhow::Result<WindowHandle<Workspace>> {
+    let (pty, events) = spawn(&launch, (80, 24), (8, 16), config(SettingsStore::get(cx)))?;
+    terminal_window(
+        None,
+        move |window, cx| cx.new(|cx| Workspace::new(pty, events, launch, window, cx)),
+        cx,
+    )
+}
+
+pub(crate) fn empty_window(
+    folder: std::path::PathBuf,
+    origin: gpui::Point<Pixels>,
+    cx: &mut App,
+) -> anyhow::Result<WindowHandle<Workspace>> {
+    terminal_window(
+        Some(origin),
+        move |window, cx| cx.new(|cx| Workspace::empty(folder, window, cx)),
+        cx,
+    )
+}
+
+fn terminal_window(
+    origin: Option<gpui::Point<Pixels>>,
+    build: impl FnOnce(&mut Window, &mut App) -> gpui::Entity<Workspace>,
+    cx: &mut App,
+) -> anyhow::Result<WindowHandle<Workspace>> {
     let kept = opening_size(cx);
     // macOS grows a window by a point on a side whose edge falls on a half point.
     let centered = Bounds::centered(None, kept, cx);
-    let bounds = Bounds::new(centered.origin.map(|at| at.round()), kept);
+    let bounds = Bounds::new(origin.unwrap_or(centered.origin).map(|at| at.round()), kept);
     let background = blur::appearance(SettingsStore::get(cx));
     let least = px(*settings::WINDOW.start());
     let options = WindowOptions {
@@ -129,16 +154,14 @@ pub fn open(launch: Launch, cx: &mut App) -> anyhow::Result<WindowHandle<Workspa
         window_background: background,
         ..Default::default()
     };
-    let (pty, events) = spawn(&launch, (80, 24), (8, 16), config(SettingsStore::get(cx)))?;
     let window = cx.open_window(options, |window, cx| {
         window.set_app_id(APP_ID);
         window
             .observe_window_appearance(|_, cx| themes::apply(cx))
             .detach();
-        cx.new(|cx| {
-            keep_size(window, cx);
-            Workspace::new(pty, events, launch, window, cx)
-        })
+        let workspace = build(window, cx);
+        workspace.update(cx, |_, cx| keep_size(window, cx));
+        workspace
     })?;
     #[cfg(target_os = "linux")]
     crate::startup::track(window, cx)?;

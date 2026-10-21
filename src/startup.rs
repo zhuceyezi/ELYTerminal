@@ -24,7 +24,7 @@ pub fn run() -> anyhow::Result<()> {
     }
     if arguments.len() == 1 && arguments[0] == "--version" {
         println!(
-            "ELYTerminal {} (Linux window reuse)",
+            "ELYTerminal {} (Linux window reuse, detachable sessions)",
             env!("CARGO_PKG_VERSION")
         );
         return Ok(());

@@ -43,6 +43,15 @@ The program's exit closes its session. The in-window new-session shortcut still 
 Desktop activation tokens travel with each request, so KDE Wayland can raise the existing window.
 The desktop entry and Dolphin can call the binary directly; no fish startup hook is required.
 
+## Detachable sessions
+
+Drag a session row from the left sidebar beyond any edge of its window to give
+that live session a window of its own. The process, output history, working
+directory and session name stay with it. Dragging the only session moves its
+existing window instead. Press Escape before crossing the edge to cancel;
+releasing inside the window keeps the session there. The close button and
+in-place rename field keep their existing behavior.
+
 ## Build and run
 
 Rust 1.95.0, which `rust-toolchain.toml` pins; rustup installs it on the first build.

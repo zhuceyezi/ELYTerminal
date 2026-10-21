@@ -10,7 +10,9 @@ use ely_gpui_component::{
     primitives::{Icon, IconName, Tooltip},
     theme::{ActiveTheme, ControlSize, IconSize},
 };
-use gpui::{AnyElement, App, Entity, SharedString, Subscription, div, prelude::*, rems};
+use gpui::{
+    AnyElement, App, Entity, MouseButton, SharedString, Subscription, div, prelude::*, rems,
+};
 
 use crate::{
     term::{Kind, Record, Records, State, TerminalView},
@@ -131,14 +133,18 @@ pub fn row(
             },
         )
         .trailing(
-            IconButton::new(("close-session", pid), IconName::X)
-                .variant(ButtonVariant::Ghost)
-                .size(ControlSize::Sm)
-                .tooltip("Close session")
-                .on_click(move |_, window, cx| {
-                    cx.stop_propagation();
-                    close.update(cx, |this, cx| this.close(index, window, cx))
-                }),
+            div()
+                .on_mouse_down(MouseButton::Left, |_, _, cx| cx.stop_propagation())
+                .child(
+                    IconButton::new(("close-session", pid), IconName::X)
+                        .variant(ButtonVariant::Ghost)
+                        .size(ControlSize::Sm)
+                        .tooltip("Close session")
+                        .on_click(move |_, window, cx| {
+                            cx.stop_propagation();
+                            close.update(cx, |this, cx| this.close(index, window, cx))
+                        }),
+                ),
         );
     let item = match &session.editing {
         Some((input, _)) => item.editor(editor(workspace, session, input)),

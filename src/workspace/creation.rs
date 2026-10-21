@@ -9,6 +9,37 @@ use crate::{
 };
 
 impl Workspace {
+    pub(crate) fn empty(
+        folder: std::path::PathBuf,
+        window: &mut Window,
+        cx: &mut Context<Self>,
+    ) -> Self {
+        let git = cx.new(|cx| GitPanel::new(folder.clone(), window, cx));
+        // A change the Git panel made shows in Files' marks too.
+        let acted = cx.subscribe(&git, |this, _, _: &Acted, cx| {
+            if let Some(session) = this.sessions.get(this.active) {
+                let folder = session.folder.clone();
+                this.files.update(cx, |files, cx| files.show(&folder, cx));
+            }
+        });
+        Self {
+            focus: cx.focus_handle(),
+            sessions: Vec::new(),
+            active: 0,
+            files: cx.new(|_| Files::new(folder.clone())),
+            git,
+            background: Blur::new(window, SettingsStore::get(cx)),
+            dragged: Dragged::default(),
+            ticking: None,
+            _settings: cx.observe_global_in::<SettingsStore>(window, |this, window, cx| {
+                this.background.follow(window, SettingsStore::get(cx));
+                cx.notify();
+            }),
+            _acted: acted,
+            session_drag: None,
+        }
+    }
+
     /// A session of the shell the settings name, in home or the shown session's folder.
     pub(super) fn new_session(&mut self, window: &mut Window, cx: &mut Context<Self>) {
         let Some(home) = dirs::home_dir() else {

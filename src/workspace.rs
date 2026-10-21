@@ -27,6 +27,7 @@ use crate::{
 mod creation;
 mod events;
 mod rename;
+mod transfer;
 mod widths;
 
 use widths::{Dragged, Side};
@@ -99,6 +100,7 @@ pub struct Workspace {
     ticking: Option<Task<()>>,
     _settings: Subscription,
     _acted: Subscription,
+    session_drag: Option<transfer::SessionDrag>,
 }
 
 impl Workspace {
@@ -110,27 +112,7 @@ impl Workspace {
         window: &mut Window,
         cx: &mut Context<Self>,
     ) -> Self {
-        let git = cx.new(|cx| GitPanel::new(launch.cwd.clone(), window, cx));
-        // A change the Git panel made shows in Files' marks too.
-        let acted = cx.subscribe(&git, |this, _, _: &Acted, cx| {
-            let folder = this.sessions[this.active].folder.clone();
-            this.files.update(cx, |files, cx| files.show(&folder, cx));
-        });
-        let mut workspace = Self {
-            focus: cx.focus_handle(),
-            sessions: Vec::new(),
-            active: 0,
-            files: cx.new(|_| Files::new(launch.cwd.clone())),
-            git,
-            background: Blur::new(window, SettingsStore::get(cx)),
-            dragged: Dragged::default(),
-            ticking: None,
-            _settings: cx.observe_global_in::<SettingsStore>(window, |this, window, cx| {
-                this.background.follow(window, SettingsStore::get(cx));
-                cx.notify();
-            }),
-            _acted: acted,
-        };
+        let mut workspace = Self::empty(launch.cwd.clone(), window, cx);
         workspace.add(pty, events, launch, window, cx);
         workspace.select(0, window, cx);
         workspace
@@ -145,10 +127,7 @@ impl Workspace {
         cx: &mut Context<Self>,
     ) {
         let terminal = cx.new(|cx| TerminalView::new(pty, events, window, cx));
-        let id = terminal.entity_id();
-        let events = cx.subscribe_in(&terminal, window, move |this, _, event, window, cx| {
-            this.session_event(id, event, window, cx)
-        });
+        let events = Self::watch_terminal(&terminal, window, cx);
         let pid = terminal.read(cx).pid();
         log::info!("app: session {pid} opens in {}", launch.cwd.display());
         self.sessions.push(Session {
@@ -359,7 +338,12 @@ impl Render for Workspace {
             let home = dirs::home_dir();
             let rows = self.sessions.iter().enumerate().map(|(index, session)| {
                 let active = index == self.active;
-                sessions::row(&workspace, index, session, active, home.as_deref(), now, cx)
+                transfer::draggable(
+                    sessions::row(&workspace, index, session, active, home.as_deref(), now, cx),
+                    &workspace,
+                    session,
+                    cx,
+                )
             });
             let list = List::new().children(rows);
             let new = IconButton::new("new-session", IconName::Plus)
@@ -457,6 +441,12 @@ impl Render for Workspace {
                     cx.propagate();
                 }
             }))
+            .capture_key_down(cx.listener(|this, event: &gpui::KeyDownEvent, _, cx| {
+                if event.keystroke.key == "escape" && this.session_drag.take().is_some() {
+                    cx.stop_propagation();
+                }
+            }))
+            .child(transfer::handlers(&cx.entity()))
             .child(
                 ResizeBorder::new()
                     .when(self.background.see_through(), ResizeBorder::glass)
