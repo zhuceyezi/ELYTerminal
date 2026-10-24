@@ -2,7 +2,7 @@ use std::time::Instant;
 
 use ely_gpui_component::{
     buttons::{ButtonVariant, IconButton, SegmentedControl},
-    lists::List,
+    motion::Reorder,
     primitives::{FocusScope, IconName},
     shell::{ColumnShell, ResizeBorder, ShellColumn},
     theme::ControlSize,
@@ -27,6 +27,8 @@ use crate::{
 mod creation;
 mod events;
 mod rename;
+mod reorder;
+mod session;
 mod transfer;
 mod widths;
 
@@ -128,6 +130,10 @@ impl Workspace {
     ) {
         let terminal = cx.new(|cx| TerminalView::new(pty, events, window, cx));
         let events = Self::watch_terminal(&terminal, window, cx);
+        let shell = launch
+            .program
+            .as_ref()
+            .map_or_else(String::new, |(program, _)| program.clone());
         let pid = terminal.read(cx).pid();
         log::info!("app: session {pid} opens in {}", launch.cwd.display());
         self.sessions.push(Session {
@@ -136,6 +142,7 @@ impl Workspace {
             name: String::new(),
             editing: None,
             folder: launch.cwd,
+            shell,
             reports: launch.reports,
             bell: false,
             waiting: false,
@@ -338,14 +345,22 @@ impl Render for Workspace {
             let home = dirs::home_dir();
             let rows = self.sessions.iter().enumerate().map(|(index, session)| {
                 let active = index == self.active;
-                transfer::draggable(
+                let pid = session.terminal.read(cx).pid();
+                let row = transfer::draggable(
                     sessions::row(&workspace, index, session, active, home.as_deref(), now, cx),
                     &workspace,
                     session,
                     cx,
-                )
+                );
+                (pid.to_string(), row)
             });
-            let list = List::new().children(rows);
+            let dragged = workspace.clone();
+            let list = rows.fold(
+                Reorder::new("session-rows").on_reorder(move |from, to, _, cx| {
+                    dragged.update(cx, |this, cx| this.reorder(from, to, cx))
+                }),
+                |list, (key, row)| list.row(key, div().pb_0p5().child(row)),
+            );
             let new = IconButton::new("new-session", IconName::Plus)
                 .variant(ButtonVariant::Ghost)
                 .size(ControlSize::Sm)
@@ -441,8 +456,9 @@ impl Render for Workspace {
                     cx.propagate();
                 }
             }))
-            .capture_key_down(cx.listener(|this, event: &gpui::KeyDownEvent, _, cx| {
+            .capture_key_down(cx.listener(|this, event: &gpui::KeyDownEvent, window, cx| {
                 if event.keystroke.key == "escape" && this.session_drag.take().is_some() {
+                    cx.stop_active_drag(window);
                     cx.stop_propagation();
                 }
             }))

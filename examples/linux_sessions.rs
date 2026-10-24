@@ -68,8 +68,28 @@ fn main() {
                         );
                     })
                     .unwrap();
+                let original = handle.update(cx, |workspace, window, cx| {
+                    let source = &workspace.sessions()[0];
+                    let (id, shell, folder) = (source.terminal.entity_id(), source.shell.clone(), source.folder.clone());
+                    workspace.duplicate(id, window, cx);
+                    let copy = &workspace.sessions()[1];
+                    assert_ne!(copy.terminal.entity_id(), id);
+                    assert_eq!(copy.shell, shell);
+                    assert_eq!(copy.folder, folder);
+                    assert!(copy.terminal.focus_handle(cx).is_focused(window));
+                    workspace.reorder(0, 2, cx);
+                    assert_eq!(workspace.sessions()[2].terminal.entity_id(), id);
+                    (id, workspace.sessions()[0].terminal.entity_id())
+                }).unwrap();
+                handle.update(cx, |workspace, window, cx| {
+                    assert!(workspace.sessions()[0].terminal.focus_handle(cx).is_focused(window));
+                    assert_eq!(workspace.sessions()[2].terminal.entity_id(), original.0);
+                    assert_eq!(workspace.sessions()[0].terminal.entity_id(), original.1);
+                    workspace.reorder(2, 0, cx);
+                    assert!(workspace.sessions()[1].terminal.focus_handle(cx).is_focused(window));
+                }).unwrap();
                 println!(
-                    "SESSION ACTION REGRESSION PASSED: new, select, close, focus, Start in Session"
+                    "SESSION ACTION REGRESSION PASSED: new, select, close, focus, Start in Session, duplicate shell/folder, reorder identity/focus"
                 );
                 cx.update(|cx| cx.quit());
             })

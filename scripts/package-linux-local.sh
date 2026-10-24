@@ -2,7 +2,7 @@
 # Package an already-built native Linux binary without Docker.
 set -eu
 cd "$(dirname "$0")/.."
-version=0.1.7
+version=$(sed -n 's/^version = "\([^"]*\)"/\1/p' Cargo.toml | head -n 1)
 out="target/release/ELYTerminal-$version-linux-window-reuse-x86_64"
 mkdir -p "$out/scripts"
 cp target/release/elyterminal "$out/elyterminal"

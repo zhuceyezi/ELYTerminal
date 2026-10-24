@@ -75,6 +75,22 @@ while True:
                 window.dispatch_action(Box::new(NewSession),cx);
             }).unwrap();
             cx.background_executor().timer(Duration::from_millis(200)).await;
+            let reordered=source.update(cx,|workspace,_,_|workspace.sessions()[0].terminal.entity_id()).unwrap();
+            gpui::AnyWindowHandle::from(source).update(cx,|_,window,cx| {
+                window.dispatch_event(PlatformInput::MouseMove(MouseMoveEvent{position:point(px(80.),px(75.)),..Default::default()}),cx);
+                window.dispatch_event(PlatformInput::MouseDown(MouseDownEvent{button:MouseButton::Left,position:point(px(80.),px(75.)),click_count:1,..Default::default()}),cx);
+                window.dispatch_event(PlatformInput::MouseMove(MouseMoveEvent{position:point(px(80.),px(140.)),pressed_button:Some(MouseButton::Left),..Default::default()}),cx);
+            }).unwrap();
+            cx.background_executor().timer(Duration::from_millis(120)).await;
+            gpui::AnyWindowHandle::from(source).update(cx,|_,window,cx| {
+                window.dispatch_event(PlatformInput::MouseMove(MouseMoveEvent{position:point(px(80.),px(150.)),pressed_button:Some(MouseButton::Left),..Default::default()}),cx);
+            }).unwrap();
+            cx.background_executor().timer(Duration::from_millis(120)).await;
+            gpui::AnyWindowHandle::from(source).update(cx,|_,window,cx| {
+                window.dispatch_event(PlatformInput::MouseUp(MouseUpEvent{button:MouseButton::Left,position:point(px(80.),px(150.)),..Default::default()}),cx);
+            }).unwrap();
+            cx.background_executor().timer(Duration::from_millis(120)).await;
+            source.update(cx,|workspace,_,_|assert_eq!(workspace.sessions()[1].terminal.entity_id(),reordered,"drag inside should reorder before detaching")).unwrap();
             let first=source.update(cx,|workspace,_,_|workspace.sessions()[0].terminal.clone()).unwrap();
             gpui::AnyWindowHandle::from(source).update(cx,|_,window,cx| {
                 window.dispatch_event(PlatformInput::MouseMove(MouseMoveEvent{position:point(px(80.),px(75.)),..Default::default()}),cx);
@@ -83,7 +99,7 @@ while True:
                 window.dispatch_event(PlatformInput::MouseUp(MouseUpEvent{button:MouseButton::Left,position:point(px(170.),px(75.)),..Default::default()}),cx);
             }).unwrap();
             cx.background_executor().timer(Duration::from_millis(100)).await;
-            assert_eq!(cx.update(|cx|cx.windows().len()),1);
+            assert_eq!(cx.update(|cx|cx.windows().into_iter().filter(|window|window.downcast::<Workspace>().is_some()).count()),1);
             gpui::AnyWindowHandle::from(source).update(cx,|_,window,cx| {
                 window.dispatch_event(PlatformInput::MouseDown(MouseDownEvent{button:MouseButton::Left,position:point(px(80.),px(75.)),click_count:1,..Default::default()}),cx);
                 window.dispatch_event(PlatformInput::KeyDown(KeyDownEvent{keystroke:Keystroke::parse("escape").unwrap(),is_held:false,prefer_character_input:false}),cx);
@@ -91,7 +107,7 @@ while True:
                 window.dispatch_event(PlatformInput::MouseUp(MouseUpEvent{button:MouseButton::Left,position:point(px(-30.),px(75.)),..Default::default()}),cx);
             }).unwrap();
             cx.background_executor().timer(Duration::from_millis(100)).await;
-            assert_eq!(cx.update(|cx|cx.windows().len()),1);
+            assert_eq!(cx.update(|cx|cx.windows().into_iter().filter(|window|window.downcast::<Workspace>().is_some()).count()),1);
             gpui::AnyWindowHandle::from(source).update(cx,|_,window,cx| {
                 window.dispatch_event(PlatformInput::MouseMove(MouseMoveEvent{position:point(px(80.),px(75.)),..Default::default()}),cx);
                 window.dispatch_event(PlatformInput::MouseDown(MouseDownEvent{button:MouseButton::Left,position:point(px(80.),px(75.)),click_count:1,..Default::default()}),cx);
@@ -99,6 +115,7 @@ while True:
                 window.dispatch_event(PlatformInput::MouseUp(MouseUpEvent{button:MouseButton::Left,position:point(px(-30.),px(75.)),..Default::default()}),cx);
             }).unwrap();
             cx.background_executor().timer(Duration::from_millis(200)).await;
+            assert!(!cx.update(|cx|cx.has_active_drag()),"detach clears the reorder drag");
             let targets=cx.update(|cx|cx.windows().into_iter().filter_map(|window|window.downcast::<Workspace>()).filter(|handle|*handle!=source).collect::<Vec<_>>());
             assert_eq!(targets.len(),1,"row drag should create one window");
             targets[0].update(cx,|workspace,_,_| assert_eq!(workspace.sessions()[0].terminal.entity_id(),first.entity_id())).unwrap();
@@ -109,13 +126,13 @@ while True:
                 window.dispatch_event(PlatformInput::MouseMove(MouseMoveEvent{position:point(px(-30.),px(75.)),pressed_button:Some(MouseButton::Left),..Default::default()}),cx);
                 window.dispatch_event(PlatformInput::MouseUp(MouseUpEvent{button:MouseButton::Left,position:point(px(-30.),px(75.)),..Default::default()}),cx);
             }).unwrap();
-            assert_eq!(cx.update(|cx|cx.windows().len()),2,"dragging the only session moves the existing window");
+            assert_eq!(cx.update(|cx|cx.windows().into_iter().filter(|window|window.downcast::<Workspace>().is_some()).count()),2,"dragging the only session moves the existing window");
             let last=source.update(cx,|workspace,_,_|workspace.sessions()[0].terminal.entity_id()).unwrap();
             let final_window=source.update(cx,|workspace,window,cx|workspace.detach_session(last,point(px(120.),px(120.)),window,cx)).unwrap().unwrap();
             cx.background_executor().timer(Duration::from_millis(150)).await;
             assert!(source.update(cx,|_,_,_|()).is_err());
             final_window.update(cx,|workspace,_,_|assert_eq!(workspace.sessions()[0].terminal.entity_id(),last)).unwrap();
-            println!("LIVE DETACH REGRESSION PASSED: same PID/entity, live task, name, folder/title events, input, exit routing, actual row drag, inside release, Escape, last-session transfer");
+            println!("LIVE DETACH REGRESSION PASSED: same PID/entity, live task, name, folder/title events, input, exit routing, actual row reorder and detach, inside release, Escape, last-session transfer");
             cx.update(|cx|cx.quit());
         }).detach();
     });

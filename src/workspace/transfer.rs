@@ -103,6 +103,7 @@ impl Workspace {
         }
         let id = self.session_drag.take().expect("a held session drag").id;
         cx.stop_propagation();
+        cx.stop_active_drag(window);
         if self.sessions.len() == 1 {
             window.start_window_move();
             log::info!("app: dragging the only session moves its window");
