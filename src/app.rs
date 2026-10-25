@@ -91,6 +91,8 @@ pub fn start(cx: &mut App) -> anyhow::Result<()> {
     }
     #[cfg(target_os = "linux")]
     themes::omarchy::start(cx)?;
+    #[cfg(target_os = "linux")]
+    themes::material::start(cx)?;
     themes::apply(cx);
     let chosen = |settings: &settings::Settings| {
         let theme = (settings.theme.clone(), settings.dark_theme.clone());

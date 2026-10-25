@@ -29,7 +29,7 @@ impl Workspace {
                 cx.notify();
             }),
             _acted: acted,
-            session_drag: None,
+            session_layout: transfer::Layout::default(),
         }
     }
 

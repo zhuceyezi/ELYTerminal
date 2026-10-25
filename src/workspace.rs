@@ -3,17 +3,15 @@ use std::time::Instant;
 use ely_gpui_component::{
     buttons::{ButtonVariant, IconButton, SegmentedControl},
     i18n::text,
-    lists::List,
-    motion::Reorder,
     primitives::{FocusScope, IconName},
     shell::{ColumnShell, ResizeBorder, ShellColumn},
     theme::ControlSize,
     typography::Caption,
 };
 use gpui::{
-    Action, AnyElement, App, AppContext, Context, Entity, FocusHandle, Focusable,
-    InteractiveElement, IntoElement, KeyBinding, ParentElement, Render, StatefulInteractiveElement,
-    StyleRefinement, Styled, Subscription, Task, Window, actions, div, prelude::FluentBuilder,
+    Action, App, AppContext, Context, Entity, FocusHandle, Focusable, InteractiveElement,
+    IntoElement, KeyBinding, ParentElement, Render, StatefulInteractiveElement, StyleRefinement,
+    Styled, Subscription, Task, Window, actions, div, prelude::FluentBuilder,
 };
 
 use crate::{
@@ -31,8 +29,8 @@ mod events;
 mod rename;
 mod reorder;
 mod session;
-mod transfer;
 mod toggles;
+mod transfer;
 mod widths;
 
 use toggles::{column_toggle, show_tab};
@@ -106,7 +104,7 @@ pub struct Workspace {
     ticking: Option<Task<()>>,
     _settings: Subscription,
     _acted: Subscription,
-    session_drag: Option<transfer::SessionDrag>,
+    session_layout: transfer::Layout,
 }
 
 impl Workspace {
@@ -259,7 +257,7 @@ impl Render for Workspace {
         self.background.fit(window);
         let now = Instant::now();
         self.tick(now, cx);
-        let settings = SettingsStore::get(cx);
+        let settings = SettingsStore::get(cx).clone();
         let workspace = cx.entity();
         // It leads the first column or ends the last.
         let left = column_toggle(
@@ -305,40 +303,7 @@ impl Render for Workspace {
             .title(self.title().to_string())
             .children(shown);
         if settings.show_sessions {
-            let home = dirs::home_dir();
-            let rows: Vec<(String, AnyElement)> = self
-                .sessions
-                .iter()
-                .enumerate()
-                .map(|(index, session)| {
-                    let active = index == self.active;
-                    let pid = session.terminal.read(cx).pid();
-                    let row =
-                        sessions::row(&workspace, index, session, active, home.as_deref(), now, cx);
-                    let row = if settings.drag_sessions {
-                        transfer::draggable(row, &workspace, session, cx).into_any_element()
-                    } else {
-                        row.into_any_element()
-                    };
-                    (pid.to_string(), row)
-                })
-                .collect();
-            // Only a drag needs Reorder; List keeps its own gap.
-            let list = if settings.drag_sessions {
-                let dragged = workspace.clone();
-                rows.into_iter()
-                    .fold(
-                        Reorder::new("session-rows").on_reorder(move |from, to, _, cx| {
-                            dragged.update(cx, |this, cx| this.reorder(from, to, cx))
-                        }),
-                        |list, (key, row)| list.row(key, div().pb_0p5().child(row)),
-                    )
-                    .into_any_element()
-            } else {
-                List::new()
-                    .children(rows.into_iter().map(|(_, row)| row))
-                    .into_any_element()
-            };
+            let list = transfer::list(self, now, window, cx);
             let new = IconButton::new("new-session", IconName::Plus)
                 .variant(ButtonVariant::Ghost)
                 .size(ControlSize::Sm)
@@ -438,8 +403,8 @@ impl Render for Workspace {
                     cx.propagate();
                 }
             }))
-            .capture_key_down(cx.listener(|this, event: &gpui::KeyDownEvent, window, cx| {
-                if event.keystroke.key == "escape" && this.session_drag.take().is_some() {
+            .capture_key_down(cx.listener(|_, event: &gpui::KeyDownEvent, window, cx| {
+                if event.keystroke.key == "escape" && transfer::cancel(cx) {
                     cx.stop_active_drag(window);
                     cx.stop_propagation();
                 }

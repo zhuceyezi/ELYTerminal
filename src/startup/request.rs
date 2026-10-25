@@ -106,7 +106,7 @@ impl Request {
         self.validate()?;
         let mut launch = shell::launch(
             &SettingsStore::get(cx).shell,
-            self.directory(),
+            shell::Start::In(self.directory()),
             &cx.global::<ShellIntegration>().0,
         )?;
         if let Some(program) = self.command.first() {

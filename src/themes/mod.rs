@@ -1,5 +1,7 @@
 mod chrome;
 #[cfg(target_os = "linux")]
+pub mod material;
+#[cfg(target_os = "linux")]
 pub mod omarchy;
 
 use std::sync::LazyLock;
@@ -43,7 +45,17 @@ pub struct Omarchy(pub TerminalTheme);
 impl Global for Omarchy {}
 
 /// Upstream Ghostty files from iTerm2-Color-Schemes: id, shown name, text.
-const FILES: [(&str, &str, &str); 12] = [
+const FILES: [(&str, &str, &str); 16] = [
+    (
+        "end4-kde-light",
+        "End-4 KDE Light",
+        include_str!("../../assets/themes/end4-kde-light"),
+    ),
+    (
+        "end4-kde-dark",
+        "End-4 KDE Dark",
+        include_str!("../../assets/themes/end4-kde-dark"),
+    ),
     (
         "catppuccin-mocha",
         "Catppuccin Mocha",
@@ -63,6 +75,16 @@ const FILES: [(&str, &str, &str); 12] = [
         "catppuccin-latte",
         "Catppuccin Latte",
         include_str!("../../assets/themes/catppuccin-latte"),
+    ),
+    (
+        "catppuccin-mocha-flamingo",
+        "Catppuccin Mocha Flamingo",
+        include_str!("../../assets/themes/catppuccin-mocha-flamingo"),
+    ),
+    (
+        "catppuccin-latte-flamingo",
+        "Catppuccin Latte Flamingo",
+        include_str!("../../assets/themes/catppuccin-latte-flamingo"),
     ),
     (
         "tokyo-night",
@@ -118,12 +140,30 @@ pub fn all() -> &'static [TerminalTheme] {
     &THEMES
 }
 
+/// Themes available to the settings, including live desktop colors.
+pub fn available(cx: &App) -> impl Iterator<Item = &TerminalTheme> {
+    let omarchy = cx.try_global::<Omarchy>().map(|omarchy| &omarchy.0);
+    #[cfg(target_os = "linux")]
+    let dynamic = cx
+        .try_global::<material::MaterialYou>()
+        .map(|theme| &theme.0);
+    #[cfg(target_os = "linux")]
+    let dynamic = dynamic.into_iter().flatten();
+    #[cfg(not(target_os = "linux"))]
+    let dynamic = std::iter::empty::<&TerminalTheme>();
+    dynamic.chain(omarchy).chain(all())
+}
+
 pub fn find(id: &str) -> Option<&'static TerminalTheme> {
     all().iter().find(|theme| theme.id == id)
 }
 
 /// A theme the settings may name: built in, or Omarchy's on Linux.
 pub fn known(id: &str) -> bool {
+    #[cfg(target_os = "linux")]
+    if material::known(id) {
+        return true;
+    }
     find(id).is_some() || (cfg!(target_os = "linux") && id == OMARCHY)
 }
 
@@ -151,6 +191,10 @@ pub fn chosen(settings: &Settings, appearance: WindowAppearance) -> &str {
 /// The chosen theme's colors; Omarchy's come from its global.
 pub fn active(settings: &Settings, appearance: WindowAppearance, cx: &App) -> TerminalTheme {
     let id = chosen(settings, appearance);
+    #[cfg(target_os = "linux")]
+    if material::known(id) {
+        return cx.global::<material::MaterialYou>().theme(id).clone();
+    }
     if id == OMARCHY {
         return cx.global::<Omarchy>().0.clone();
     }

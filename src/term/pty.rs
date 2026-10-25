@@ -123,6 +123,8 @@ pub fn spawn(
         let mut env = super::env::fresh()?;
         env.set("TERM", "xterm-256color".into());
         env.set("COLORTERM", "truecolor".into());
+        env.set("TERM_PROGRAM", "ELYTerminal".into());
+        env.set("TERM_PROGRAM_VERSION", env!("CARGO_PKG_VERSION").into());
         if env.get("LANG").is_none() {
             env.set("LANG", "en_US.UTF-8".into());
         }
@@ -136,6 +138,11 @@ pub fn spawn(
         let mut env = HashMap::from([
             ("TERM".to_string(), "xterm-256color".to_string()),
             ("COLORTERM".to_string(), "truecolor".to_string()),
+            ("TERM_PROGRAM".to_string(), "ELYTerminal".to_string()),
+            (
+                "TERM_PROGRAM_VERSION".to_string(),
+                env!("CARGO_PKG_VERSION").to_string(),
+            ),
         ]);
         if std::env::var_os("LANG").is_none() {
             env.insert("LANG".into(), "en_US.UTF-8".into());

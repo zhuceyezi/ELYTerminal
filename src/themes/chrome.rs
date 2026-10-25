@@ -20,6 +20,10 @@ pub fn palette(theme: &TerminalTheme, opacity: f32) -> Palette {
     let (bg, fg, ansi) = (theme.background, theme.foreground, theme.ansi);
     let tint = |share: f32| bg.mix(&fg, share);
     let wash = |color: gpui::Hsla| bg.mix(&color, 0.18);
+    let accent = (theme.id.ends_with("-flamingo")
+        || theme.id.starts_with("material-you-")
+        || theme.id.starts_with("end4-"))
+    .then_some(theme.cursor);
     Palette {
         bg,
         surface: bg,
@@ -33,11 +37,15 @@ pub fn palette(theme: &TerminalTheme, opacity: f32) -> Palette {
         fg_muted: tint(0.8),
         fg_subtle: tint(0.62),
         fg_disabled: tint(0.36),
-        accent: fg,
-        accent_hover: tint(0.85),
-        on_accent: bg,
-        focus: ansi[4],
-        link: ansi[12],
+        accent: accent.unwrap_or(fg),
+        accent_hover: accent.map_or_else(|| tint(0.85), |color| color.mix(&fg, 0.15)),
+        on_accent: if theme.id.starts_with("material-you-") || theme.id.starts_with("end4-") {
+            theme.cursor_text
+        } else {
+            bg
+        },
+        focus: accent.unwrap_or(ansi[4]),
+        link: accent.unwrap_or(ansi[12]),
         selection: theme.selection_background.alpha(0.4),
         success: ansi[2],
         warning: ansi[3],

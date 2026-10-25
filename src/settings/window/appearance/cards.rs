@@ -30,8 +30,7 @@ pub(super) fn grid(
     } else {
         ("theme", Some(settings.theme.as_str()))
     };
-    let omarchy = cx.try_global::<themes::Omarchy>().map(|omarchy| &omarchy.0);
-    let cards = omarchy.into_iter().chain(themes::all()).map(|each| {
+    let cards = themes::available(cx).map(|each| {
         let (id, this) = (each.id, this.clone());
         let key = SharedString::from(format!("{field}-{id}"));
         RadioCard::new(key, chosen == Some(id), each.name)
