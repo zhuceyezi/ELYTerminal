@@ -175,3 +175,34 @@ Progress truth. Top to bottom, one at a time. A task is ticked only after its co
 ## 35. Release
 
 - [x] T72 Release v0.1.8 with T67 to T71: version 0.1.8; the macOS disk image, the Windows zip and the Linux tarball, each from its script; the notes list what changed in English and Chinese; a short thanks on issues #3, #7, #10 and PRs #5, #8, #9, #11, then each closed; issue #2 closed without a word.
+
+## 36. Issues and pull requests after 0.1.8
+
+Each task ends with a short thanks on its issue or pull request, then closes it.
+
+- [x] T73 On Windows output reaches the screen as the program writes it, which a user found waiting for a key in issue #19 with fastfetch and llama-server: find where the bytes wait, between ConPTY, the reader thread, the tap, alacritty's event loop and the view; fix the cause; log it.
+- [x] T74 Git for Windows' bash and sh follow their folder, which a user asked for in issue #13 with `C:\Program Files\Git\bin\sh.exe`: they load ELYTerminal's integration and name the folder as Windows names it, so Files and Git follow.
+- [x] T75 A program's OSC 7501 records outlive the prompt marks a running command prints, from PR #17, which omp needs (issue #10): only a shell's own prompt drops working, blocked and idle records, as the spec asks. Three reviews spent, the cap: round 3's two findings were fixed in 89b4873 and checked against every probe of the three rounds, with no fourth review. T92's review passed its last fix and its recorded limit, a shell the integration does not reach, nested or over ssh, which keeps its own group's records at its prompts, a limit T93 narrows; the owner accepted it at the cap on 2026-10-24.
+- [x] T76 Wide characters keep their columns, which a user found broken in issue #22 under codex on Windows: an erase that splits a wide character clears all of it, and text after one stays in its column.
+- [x] T77 Option as Alt works under macOS input methods, from PR #18: with a Chinese input source, `⌥f` sends `ESC f`, and composition still works.
+- [x] T78 A quote types on its first press on Windows, which a user found in issue #12: find which layout or input method holds it, fix the cause, log the path a key takes.
+- [x] T79 Backspace deletes in omp on Windows, which a user found in issue #21: find what omp reads for it through ConPTY, and send what it expects.
+- [x] T80 Chinese input methods commit on X11 without a crash, from PR #15: the compound text decoder gpui's XIM uses reads every set libX11 writes, through libX11's own tables, GB2312, Traditional Chinese's JIS X 0212 and Big5, Big5-HKSCS and GBK segments among them.
+- [x] T81 A wheel notch on Windows scrolls the lines Windows sets, which a user found tripled in issue #24: gpui's lines there already carry the system's count, and on Linux 3; one screen at a time scrolls a screen, and Shift with the wheel, which takes it back from a program that tracks the mouse, scrolls as where nothing tracks it. Three reviews spent, the cap: round 3's finding was fixed in c32fe52 and checked by the review's own probe over 12,800 splits of a notch, with no fourth review. T92's review passed its last fix and a paged notch's parts; the owner accepted it at the cap on 2026-10-24.
+- [x] T82 Ely stays with the main window on KDE Plasma's Wayland, which a user found floating over other windows, draggable while the window slept, and left behind at minimize in issue #27.
+- [x] T83 Settings › Terminal switches for the sessions column's drag and its right press, from PR #14.
+- [x] T84 A long branch name keeps "Amend last commit" readable, which a user found squeezed in issue #20: Ely's `CommitInput` moves its commit button below when both do not fit, from the reporter's fix; ELYTerminal pins that Ely.
+- [x] T85 The interface in Simplified Chinese, which a user asked for in issue #26: a Language row in Settings › Appearance, English or 简体中文, through Ely's `I18n`.
+- [x] T86 Start in knows WSL and takes a folder of your own, which a user asked for in issue #23: Home starts a `wsl` session in the distribution's home, and a third choice starts every session in a chosen folder.
+- [x] T87 Linux DEB, RPM and AppImage packages, from PR #16.
+- [x] T88 The right column's Git tab takes a press while the window is maximized or full screen on GNOME's Wayland, which a user found dead in issue #28: reproduce it under GNOME, find the cause, fix it or log what the next report needs.
+- [x] T89 Issue #25's kind words thanked and closed; every issue and pull request above answered; the acceptance table checked line by line. Three reviews spent, the cap: round 3 found row 156 certifying an update notification's press that a Check now, running or failed, loses; T90 fixes that in the code. T92's review passed T90's fix of its last finding; the owner accepted it at the cap on 2026-10-24.
+- [x] T90 The update notification's press opens the page it named, as T56 asked, whatever a check since has found or is doing, which T89's third review found lost to a Check now running or failed.
+- [x] T91 Every comment written since 0.1.8, in ELYTerminal and in its Ely and alacritty commits, fits one line of ten words, as the owner's rules ask; the reviews checked lines, not words.
+- [x] T92 The last fixes of T75, T81 and T89, which spent their three reviews, pass a review of their own: every probe of their rounds runs on HEAD, and their rows and decisions hold.
+- [x] T93 A shell nested in a session drops its own live records at its prompts, which T92's review found kept: a fish started inside zsh, its own marks unnamed, kept what its builtins reported. An unnamed prompt from another group is a shell's when that group's leader runs zsh, bash or fish started with options alone and the group holds it alone, or the leader is fish and its line takes clicks; a wrapper's script or `-c`, a subshell, a shell with job control off and a fish script's `read` still keep the program's records. Three reviews spent, the cap: round 3's finding, a fish script's `read`, whose line takes clicks as fish's own prompt does, read as a shell's prompt, was fixed in 6dc0409 and checked against every probe of the three rounds, 58 in all, with no fourth review. The owner accepted it at the cap on 2026-10-24.
+
+## 37. Release
+
+- [ ] T94 Release v0.1.9 with T73 to T93: version 0.1.9; the macOS disk image, the Windows zip, and the Linux tarball, DEB, RPM and AppImage, each from its script; the notes list what changed in English and Chinese and credit the pull requests' authors.
+- [ ] T95 The 0.1.9 update film: about 30 seconds in the 0.1.7 film's style, Ely presenting what 0.1.9 does in a real recording, captions in English and Chinese; its files stay in the untracked `videos/`.
