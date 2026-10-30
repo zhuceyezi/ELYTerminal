@@ -31,6 +31,9 @@ impl Workspace {
             .context("app: the session to transfer no longer exists")?;
         self.end_rename(id, true, window, cx);
         let pid = self.sessions[from].terminal.read(cx).pid();
+        self.sessions[from]
+            .terminal
+            .update(cx, |view, _| view.set_front(false, window));
         let mut moved = Some(self.sessions.remove(from));
         if let Err(error) = target.update(cx, |destination, window, cx| {
             destination.adopt(
@@ -43,6 +46,7 @@ impl Workspace {
         }) {
             if let Some(session) = moved {
                 self.sessions.insert(from, session);
+                self.select(self.active, window, cx);
             }
             return Err(error).context("app: session transfer destination closed");
         }
@@ -83,6 +87,9 @@ impl Workspace {
         self.end_rename(id, true, window, cx);
         let target = app::empty_window(self.sessions[index].folder.clone(), origin, cx)?;
         let pid = self.sessions[index].terminal.read(cx).pid();
+        self.sessions[index]
+            .terminal
+            .update(cx, |view, _| view.set_front(false, window));
         let mut moved = Some(self.sessions.remove(index));
         if let Err(error) = target.update(cx, |destination, window, cx| {
             destination.adopt(
@@ -95,6 +102,7 @@ impl Workspace {
         }) {
             if let Some(session) = moved {
                 self.sessions.insert(index, session);
+                self.select(self.active, window, cx);
             }
             let _ = target.update(cx, |_, window, _| window.remove_window());
             return Err(error).context("app: could not populate detached window");

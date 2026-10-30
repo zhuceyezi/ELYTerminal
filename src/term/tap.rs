@@ -8,6 +8,7 @@ use futures::channel::mpsc::UnboundedSender;
 use polling::{Event, PollMode, Poller};
 
 use super::{
+    clipboard,
     marks::{self, Mark},
     notify::{self, Kitty},
     prompts::{self, Prompts},
@@ -124,10 +125,13 @@ impl<P: EventedReadWrite> Tapped<P> {
         #[cfg(unix)]
         let (holder, prompts) = (
             || holder(self.master.as_ref(), pid),
-            |group, click| prompts(group, click, pid),
+            |group: Option<i32>, click| group.is_some_and(|group| prompts(group, click, pid)),
         );
         #[cfg(windows)]
-        let (holder, prompts) = (|| None, |_, _| false);
+        let (holder, prompts) = (
+            || None,
+            |group: Option<i32>, _| group.is_none() && nested(pid),
+        );
         self.scanner.feed(read, &mut |found| {
             report(
                 found,
@@ -200,7 +204,7 @@ fn report(
     last: &mut Option<PathBuf>,
     (kitty, titles, named): (&mut Kitty, &mut Titles, &mut bool),
     holder: &dyn Fn() -> Option<i32>,
-    prompts: &dyn Fn(i32, marks::Click) -> bool,
+    prompts: &dyn Fn(Option<i32>, marks::Click) -> bool,
 ) {
     let event = match found {
         Found::Reset => {
@@ -214,6 +218,10 @@ fn report(
         }
         Found::Pop => match titles.pop() {
             Some(title) => PtyEvent::Title(title),
+            None => return,
+        },
+        Found::Long(body) => match body.strip_prefix(b"5522;").and_then(clipboard::long) {
+            Some(packet) => PtyEvent::Clipboard(packet),
             None => return,
         },
         Found::Osc(body, length) => {
@@ -236,7 +244,12 @@ fn report(
                 let group = holder();
                 log::debug!("pty {pid}: {status:?} from group {group:?}");
                 PtyEvent::Status(status, group)
-            } else if let Some(ask) = ask(body, kitty) {
+            } else if let Some(rest) = body.strip_prefix(b"5522;") {
+                match clipboard::read(rest) {
+                    Some(packet) => PtyEvent::Clipboard(packet),
+                    None => return,
+                }
+            } else if let Some(ask) = notify::ask(body, kitty) {
                 let group = holder();
                 log::debug!("pty {pid}: {ask:?} from group {group:?}");
                 PtyEvent::Ask(ask, group)
@@ -260,17 +273,6 @@ fn report(
     };
     if events.unbounded_send(event).is_err() {
         log::debug!("pty {pid}: an event after its session closed");
-    }
-}
-
-/// A notification or progress an OSC 99, 777 or 9 body asks for.
-fn ask(body: &[u8], kitty: &mut Kitty) -> Option<notify::Ask> {
-    if let Some(rest) = body.strip_prefix(b"99;") {
-        kitty.read(rest)
-    } else if let Some(rest) = body.strip_prefix(b"777;") {
-        notify::rxvt(rest)
-    } else {
-        body.strip_prefix(b"9;").and_then(notify::nine)
     }
 }
 
@@ -340,6 +342,8 @@ enum State {
 /// What the scanner finds: an OSC's body with the sequence's length from OSC through ST, a full reset, or the title stack's push and pop.
 pub(crate) enum Found<'a> {
     Osc(&'a [u8], usize),
+    /// An OSC past its bound: the body kept before it.
+    Long(&'a [u8]),
     Reset,
     Push,
     Pop,
@@ -363,7 +367,7 @@ impl Osc {
         let mut rest = bytes;
         while !rest.is_empty() {
             if self.state == State::Ground {
-                match rest.iter().position(|&byte| byte == 0x1b) {
+                match memchr::memchr(0x1b, rest) {
                     Some(at) => {
                         self.state = State::Escape;
                         rest = &rest[at + 1..];
@@ -402,7 +406,9 @@ impl Osc {
                     self.finish(2, found);
                     State::Escape
                 }
-                (State::Osc, 0x00..=0x06 | 0x08..=0x17 | 0x19 | 0x1c..=0x1f) => {
+                (State::Osc, 0x00..=0x06 | 0x08..=0x17 | 0x19 | 0x1c..=0x1f)
+                    if !self.body.starts_with(b"5522;") =>
+                {
                     self.length += 1;
                     State::Osc
                 }
@@ -456,6 +462,8 @@ impl Osc {
     fn most(&self) -> usize {
         if self.body.starts_with(b"99;") {
             notify::BODY
+        } else if self.body.starts_with(b"5522;") {
+            clipboard::BODY
         } else if self.body.starts_with(b"0;") || self.body.starts_with(b"2;") {
             titles::LONGEST
         } else {
@@ -466,6 +474,7 @@ impl Osc {
     fn finish(&mut self, end: usize, found: &mut impl FnMut(Found)) {
         if self.overflow {
             log::warn!("pty: an OSC over {} bytes dropped", self.most());
+            found(Found::Long(&self.body));
         } else {
             found(Found::Osc(&self.body, self.length + end));
         }
@@ -476,13 +485,15 @@ impl Osc {
 /// The most values, subparameters too, one sequence holds before vte drops it.
 const PARAMS: usize = 32;
 
-mod folder;
+pub(in crate::term) mod folder;
 mod holder;
 mod modes;
 #[cfg(test)]
 mod tests;
 
 use folder::folder;
+#[cfg(windows)]
+use holder::nested;
 use holder::prompter;
 #[cfg(unix)]
 use holder::{holder, prompts};

@@ -15,11 +15,11 @@ fn rgb(hex: u32) -> Hsla {
 
 #[test]
 fn every_bundled_file_parses_with_unique_ids() {
-    assert_eq!(all().len(), 14);
-    let mut ids: Vec<_> = all().iter().map(|theme| theme.id).collect();
+    assert_eq!(all().len(), 18);
+    let mut ids: Vec<_> = all().iter().map(|theme| theme.id.clone()).collect();
     ids.sort();
     ids.dedup();
-    assert_eq!(ids.len(), 14);
+    assert_eq!(ids.len(), 18);
     let folder = concat!(env!("CARGO_MANIFEST_DIR"), "/assets/themes");
     for entry in std::fs::read_dir(folder).expect("themes folder") {
         let name = entry
@@ -49,13 +49,15 @@ fn light_and_dark_follow_the_background() {
     let light: Vec<_> = all()
         .iter()
         .filter(|theme| !theme.is_dark())
-        .map(|theme| theme.id)
+        .map(|theme| theme.id.clone())
         .collect();
     assert_eq!(
         light,
         [
             "ely-light",
+            "end4-kde-light",
             "catppuccin-latte",
+            "catppuccin-latte-flamingo",
             "solarized-light",
             "one-light"
         ]

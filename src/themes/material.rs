@@ -246,12 +246,13 @@ fn generate(seed: Argb) -> MaterialYou {
             ansi[7] = color(scheme.on_surface_variant);
             ansi[15] = color(scheme.on_surface);
             TerminalTheme {
-                id: IDS[usize::from(dark)],
+                id: IDS[usize::from(dark)].into(),
                 name: if dark {
                     "Material You Dark (Wallpaper)"
                 } else {
                     "Material You Light (Wallpaper)"
-                },
+                }
+                .into(),
                 background: color(scheme.surface),
                 foreground: color(scheme.on_surface),
                 cursor: color(scheme.primary),

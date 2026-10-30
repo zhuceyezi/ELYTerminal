@@ -16,7 +16,7 @@ use gpui::{
 
 use crate::{
     blur::Blur,
-    files::Files,
+    files::{Files, Here},
     git::panel::{Acted, GitPanel},
     menus,
     sessions::{self, Session, orb},
@@ -105,6 +105,7 @@ pub struct Workspace {
     _settings: Subscription,
     _acted: Subscription,
     session_layout: transfer::Layout,
+    _here: Subscription,
 }
 
 impl Workspace {
@@ -188,13 +189,15 @@ impl Workspace {
         {
             hidden.terminal.update(cx, |view, cx| {
                 view.let_go(cx);
-                view.set_front(false);
+                view.set_front(false, window);
             });
         }
         let session = &mut self.sessions[index];
         session.bell = false;
         session.waiting = false;
-        session.terminal.update(cx, |view, _| view.set_front(true));
+        session
+            .terminal
+            .update(cx, |view, _| view.set_front(true, window));
         window.focus(&session.terminal.focus_handle(cx), cx);
         let folder = session.folder.clone();
         self.files.update(cx, |files, cx| files.show(&folder, cx));
@@ -212,6 +215,10 @@ impl Workspace {
         }
         let session = self.sessions.remove(index);
         log::info!("app: session {} closes", session.terminal.read(cx).pid());
+        // Its textures leave the window's atlas with it.
+        session
+            .terminal
+            .update(cx, |view, _| view.set_front(false, window));
         if self.sessions.is_empty() {
             log::info!("app: no session left; the window closes");
             window.remove_window();

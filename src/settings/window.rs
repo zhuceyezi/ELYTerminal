@@ -95,6 +95,9 @@ pub struct SettingsWindow {
     /// Why the typed shell and folder are not saved.
     refused: Option<SharedString>,
     refused_folder: Option<SharedString>,
+    /// The background picture, typed or browsed, and why it is not saved.
+    image: Entity<TextInput>,
+    refused_image: Option<SharedString>,
     /// Why the last change did not save.
     failed: Option<SharedString>,
     /// Refusals so far; a field keyed by it drops its draft and shows the settings again.
@@ -106,7 +109,12 @@ pub struct SettingsWindow {
     adding: bool,
     /// Whether the cursor preview shows, as it blinks.
     lit: bool,
-    _typed: [Subscription; 2],
+    /// The worn custom theme the editor shows, its name and its chosen color.
+    editing: Option<String>,
+    theme_name: Entity<TextInput>,
+    _named: Subscription,
+    slot: usize,
+    _typed: [Subscription; 3],
     _settings: Subscription,
     _updates: Subscription,
     _language: Subscription,
@@ -127,6 +135,12 @@ impl SettingsWindow {
             input
         });
         let font = cx.new(|cx| TextInput::new(window, cx));
+        let (theme_name, named) = Self::name_field(None, String::new(), window, cx);
+        let image = cx.new(|cx| {
+            let mut input = TextInput::new(window, cx);
+            input.set_text(SettingsStore::get(cx).background_image.clone(), cx);
+            input
+        });
         let search = cx.new(|cx| {
             let placeholder = text(cx, "et.settings.search_shortcuts", &[]);
             TextInput::new(window, cx).placeholder(placeholder)
@@ -146,6 +160,13 @@ impl SettingsWindow {
                     this.refused_folder = this.save_typed("start_folder", folder, put, cx);
                 }
             }),
+            cx.subscribe(&image, |this, input, event: &InputEvent, cx| {
+                if let InputEvent::Changed = event {
+                    let image = input.read(cx).text().to_string();
+                    let put = |settings: &mut Settings, image| settings.background_image = image;
+                    this.refused_image = this.save_typed("background_image", image, put, cx);
+                }
+            }),
         ];
         // Focus inside, so the window's keys find its context.
         let focus = cx.focus_handle();
@@ -158,12 +179,18 @@ impl SettingsWindow {
             search,
             refused: None,
             refused_folder: None,
+            image,
+            refused_image: None,
             failed: None,
             drafts: 0,
             font,
             fallbacks: Vec::new(),
             adding: false,
             lit: true,
+            editing: None,
+            theme_name,
+            _named: named,
+            slot: 0,
             _typed: typed,
             _settings: cx.observe_global::<SettingsStore>(|_, cx| cx.notify()),
             _updates: cx.observe_global::<Updates>(|_, cx| cx.notify()),
@@ -207,6 +234,7 @@ impl SettingsWindow {
         let (input, refused) = match field {
             "shell" => (self.shell.clone(), &mut self.refused),
             "start_folder" => (self.folder.clone(), &mut self.refused_folder),
+            "background_image" => (self.image.clone(), &mut self.refused_image),
             other => unreachable!("settings: no path field {other}"),
         };
         let Some(text) = path.to_str() else {
@@ -360,6 +388,7 @@ impl Render for SettingsWindow {
         let page = match self.section.as_ref() {
             "appearance" => {
                 self.grow_fallbacks(window, cx);
+                self.follow_custom(window, cx);
                 self.appearance(window, cx).into_any_element()
             }
             "terminal" => self.terminal(cx).into_any_element(),

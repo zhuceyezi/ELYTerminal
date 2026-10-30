@@ -95,22 +95,6 @@ fn name(path: &Path) -> String {
         .unwrap_or_default()
 }
 
-/// Characters that start zsh's, bash's or fish's options; none elsewhere.
-#[cfg(unix)]
-pub(super) fn option_marks(path: &Path) -> Option<&'static [char]> {
-    match name(path).as_str() {
-        "zsh" | "bash" => Some(&['-', '+']),
-        "fish" => Some(&['-']),
-        _ => None,
-    }
-}
-
-/// Whether `path` runs fish, whose own line marks clicks.
-#[cfg(unix)]
-pub(super) fn fish(path: &Path) -> bool {
-    name(path) == "fish"
-}
-
 /// How to start `shell`, or the login shell, at `start`.
 pub fn launch(shell: &str, start: impl Into<Start>, dir: &Path) -> anyhow::Result<Launch> {
     let start = start.into();
@@ -273,6 +257,13 @@ fn alias(path: &str) -> bool {
         .is_some_and(|name| name.eq_ignore_ascii_case("WindowsApps"))
 }
 
+mod options;
+#[cfg(unix)]
+pub(super) use options::clicks;
+pub(super) use options::options;
+#[cfg(unix)]
+pub(super) use options::relays;
+
 #[cfg(all(test, unix))]
 mod tests;
 
@@ -310,6 +301,64 @@ mod windows_tests {
         let there = launch("wsl", Start::In(folder.clone()), &dir).expect("a launch");
         assert_eq!(there.cwd, folder);
         assert_eq!(there.program.expect("wsl").1[0], "-e");
+    }
+
+    #[test]
+    fn cd_takes_git_bash_s_drive_paths() {
+        let (_, text) = SCRIPTS
+            .iter()
+            .find(|(name, _)| *name == "pwsh/elyterminal.ps1")
+            .expect("the PowerShell script");
+        let script =
+            std::env::temp_dir().join(format!("elyterminal-cd-{}.ps1", std::process::id()));
+        std::fs::write(&script, text).expect("the script");
+        // Only a whole `cd /x` line naming nothing here changes.
+        let body = format!(
+            "Import-Module PSReadLine; . '{}'; \
+             ElyDrivePath 'cd /c/Windows/System32'; ElyDrivePath 'cd /C'; ElyDrivePath 'cd /c/Windows; ls'; \
+             $free = [char[]](70..89) | Where-Object {{ -not (Test-Path \"$($_):\\\") }} | Select-Object -First 1; \
+             if ((ElyDrivePath \"cd /$free\") -eq \"cd /$free\") {{ 'no drive: kept' }}; \
+             $root = New-Item -ItemType Directory -Force \"$env:TEMP\\ely-cd-$PID\\c\\project\"; \
+             New-PSDrive -Name ElyCd -PSProvider FileSystem -Root $root.Parent.Parent.FullName | Out-Null; \
+             Set-Location ElyCd:\\; ElyDrivePath 'cd /c/proj*'; Set-Location C:\\; \
+             Remove-Item -Recurse -Force $root.Parent.Parent.FullName; \
+             Set-Alias -Name cd -Value Push-Location -Option AllScope -Scope Global -Force; \
+             ElyDrivePath 'cd /c/Windows'; \
+             Set-Alias -Name cd -Value Set-Location -Option AllScope -Scope Global -Force; \
+             ElyDrivePath \"cd`n/c/Windows\"; $q = 'cd /c/\u{201c}Windows\u{201d}'; if ((ElyDrivePath $q) -eq $q) {{ 'curly: kept' }}; \
+             function global:Set-Location {{ }}; ElyDrivePath 'cd /c/Windows'; Remove-Item function:Set-Location; \
+             New-PSDrive -Name I -PSProvider FileSystem -Root $env:TEMP | Out-Null; \
+             [Threading.Thread]::CurrentThread.CurrentCulture = 'tr-TR'; ElyDrivePath 'cd /i'; \
+             $global:ElyReadLine = {{ 'cd /c/Windows' }}; $typed = PSConsoleHostReadLine; \"run: $typed\"",
+            script.display()
+        );
+        let out = std::process::Command::new("powershell.exe")
+            .args(["-NoProfile", "-NonInteractive", "-Command", &body])
+            .output()
+            .expect("powershell runs");
+        std::fs::remove_file(&script).expect("cleanup");
+        let text = String::from_utf8_lossy(&out.stdout);
+        let lines: Vec<_> = text.lines().collect();
+        assert_eq!(
+            lines,
+            [
+                r"cd C:\Windows\System32",
+                r"cd C:\",
+                "cd /c/Windows; ls",
+                "no drive: kept",
+                "cd /c/proj*",
+                "cd /c/Windows",
+                "cd",
+                "/c/Windows",
+                "curly: kept",
+                "cd /c/Windows",
+                r"cd I:\",
+                // The hook marks the command's start first.
+                "\u{1b}]133;C\u{7}run: cd C:\\Windows",
+            ],
+            "{}",
+            String::from_utf8_lossy(&out.stderr)
+        );
     }
 
     #[test]

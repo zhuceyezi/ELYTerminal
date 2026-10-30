@@ -15,11 +15,15 @@ impl Workspace {
                 this.files.update(cx, |files, cx| files.show(&folder, cx));
             }
         });
+        let files = cx.new(|_| Files::new(folder.clone()));
+        let here = cx.subscribe_in(&files, window, |this, _, Here(folder), window, cx| {
+            this.here(folder.clone(), window, cx)
+        });
         Self {
             focus: cx.focus_handle(),
             sessions: Vec::new(),
             active: 0,
-            files: cx.new(|_| Files::new(folder.clone())),
+            files,
             git,
             background: Blur::new(window, SettingsStore::get(cx)),
             dragged: Dragged::default(),
@@ -29,6 +33,7 @@ impl Workspace {
                 cx.notify();
             }),
             _acted: acted,
+            _here: here,
             session_layout: transfer::Layout::default(),
         }
     }
