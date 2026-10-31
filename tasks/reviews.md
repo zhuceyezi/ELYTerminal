@@ -428,3 +428,72 @@ T01 to T49 are in `reviews-t01-t49.md`.
 - Round 3, 18487a4: FAIL. Replacing `cd` overrode a user's own `cd` and lost its folder-only completion. The approach changed in 7ab6c59: the typed line is rewritten before it runs, `cd` itself untouched.
 - Round 4, 86e6205: FAIL. A line break, curly quotes, a user's own Set-Location function and tr-TR's capital i each slipped through. Fixed in 5211c92.
 - Round 5, 5211c92: PASS.
+
+## T127
+
+- Round 1, the v0.2.0 draft at 0cef65d: FAIL. The notes' clipboard line was too broad, the history figure lacked its measure, Mica lacked its build, and the composition crash fix was missing. Fixed in the draft's notes.
+- Round 2: FAIL. Only the newest paste's password reads unasked; fixed.
+- Round 3: PASS. Published: v0.2.0 at 0cef65d, latest, twelve assets; the website's six version-less links resolve to it.
+
+## T129
+
+- Round 1, 19e0cd2 with the Windows fork's 8b9ce59: FAIL. The fork's README left the Mica change out of its removal condition. Fixed on the fork's main, ef184ce, a README alone.
+- Round 2: PASS. 0.2.0's Windows zip, rebuilt at 19e0cd2 (sha256 b7c9e6f0…), replaced the one on v0.2.0 with its alias.
+
+## T130
+
+- PR #48 merged at the owner's word: macOS 400 tests and Linux 414 pass on the merge, and the PR's zsh tests fail with its blanking taken out.
+- Round 1, the merged PR: FAIL. Blanking erased a background job's output on the prompt's line, a continued command's first lines and the prompt without zle; a `sched` at every prompt reset `$pipestatus`. Reworked in eb2c3e2 as kitty keeps a prompt's rows.
+- Round 2, eb2c3e2: FAIL. A soft wrap into the prompt joined output to it, `unsetopt zle` kept `redraw=1`, `reset-prompt` lost `$pipestatus`; a background job's output kept and cut, recorded as a limit, as kitty cuts it. Fixed in 81cbbcd.
+- Round 3, 81cbbcd: FAIL. `ksh_arrays`, statuses past 128, `err_return`, `globalrcs` off and an unset PS2 under `nounset` each broke the line-init path. Fixed in c5db798.
+- Round 4, c5db798: FAIL. Five more in the line-init path: a loaded helper, a failing widget before ours, options and locals at expansion, an empty IFS. The path went in 81906b3: a theme holding the last hook gets its A printed, as kitty does.
+- Round 5, 81906b3: FAIL. A widget running the precmd hooks printed a mark mid-line, fixed in af5a8f7 as kitty guards it; a printing hook under such a theme, recorded as kitty's own limit.
+- Round 6, af5a8f7: FAIL. A line typed taller than the screen piled up copies: kept rows reached the history zsh's redraw cannot reach. Fixed in 8e2c91f as kitty keeps no history row.
+- Round 7, 8e2c91f: FAIL. A blank line in the prompt hid its start above the screen. Fixed in fbd6231, the start sought past blank rows.
+- Round 8, fbd6231: PASS.
+
+## T131
+
+- Round 1, b0c63b4 with vte 8fa83a9 and alacritty d2781ca: PASS.
+
+## T132
+
+- Round 1: FAIL. An opened folder's new file went unmarked, an edit inside a closed folder too, and closed folders were still read. Ely `Tree::on_toggle` (d1d7cf7, main 141ecf2); Git's marks every tick.
+- Round 2: FAIL. A remounted tree opened what Files did not read, a renamed folder was read on, marks rebuilt on the main thread. Files seeds the tree, prunes gone folders, builds marks off the main thread.
+- Round 3: FAIL. A Git failure cleared the marks, a deleted root's folders were read on. Failures keep the last marks, logged once; an unreadable parent drops all below.
+- Rounds 4 to 9: FAIL, each a case of an unreadable `.git` that git reports as no repository: a literal path scan, links, `GIT_CEILING_DIRECTORIES`, nested repositories, `core.worktree`. Git answers it exactly as no repository, so Files believes git, as the Git panel does; recorded in AGENTS.
+- Round 10: FAIL. A closed folder's cached listing outlived its deletion; `prune` takes them too.
+- Round 11: FAIL. A closed root was read no more; the root is always read.
+- Round 12: PASS.
+
+## T133
+
+- Round 1: FAIL. Ely kept her error face when C cleared the failure, and a user's `PROMPT` with `&` ran through `/k prompt`. `TerminalEvent::Ended` at each change; the prompt through the environment.
+- Round 2: FAIL. A script block around `cmd` left `$?` true, and OSC 7 decoded a folder named `rel%20one`. The line runs as typed, the next prompt restores `PROMPT`; cmd reports its folder by ConEmu's raw OSC 9;9.
+- Round 3: FAIL. `ElyCmdBack` unset under strict mode, and cmd's first D ended PowerShell's `cmd` early. Initialized; cmd sends no D.
+- Round 4: FAIL. A nested cmd's named A closed PowerShell's command, dropping a program's records. Nested, its A is unnamed.
+- Round 5: FAIL. An inherited marked prompt kept its old name. Ours is marked again for its place.
+- Round 6: PASS.
+
+## T134
+
+- Round 1: FAIL. Tooltips kept the system font, gpui drawing each as a root of its own. Ely `b0350ad` (main `dd727f4`) gives a tooltip the theme's family, which ELYTerminal now sets.
+- Round 2: FAIL. The root's 13 px shrank text of no size of its own from gpui's 16 px. The root takes gpui's 1 rem, scaled.
+- Round 3: PASS.
+
+## T135
+
+- Round 1: FAIL. cmd given a share started in the Windows folder, and wsl given another distribution's share started the default. WSL now starts that distribution there; cmd pushed into the share.
+- Round 2: the reviewer's pane read round 1's verdict again; round 3 read the change.
+- Round 3: FAIL. pushd's drive outlives the session. On the owner's PC a session closed through ConPTY left it mapped, on the letter of the owner's remembered `Z:`; cleaned. pushd went: cmd says itself it cannot sit in a share.
+- Round 4: PASS.
+
+## T136
+
+- Round 1: FAIL. `tr` hid a missing zip digest behind an empty SHA, and `MpCmdRun.exe` is not on PATH. The digest fails alone; the guides call it by its full path from an administrator's PowerShell.
+- Round 2: PASS.
+
+## T137
+
+- Round 1: FAIL. The folder argument's lines missed cmd's share limit, winget's line its catalog's merge, the guides Windows 11's Show more options, and the acceptance table still pinned Ely `494c17d`. Fixed.
+- Round 2: PASS.

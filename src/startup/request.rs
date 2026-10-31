@@ -25,6 +25,8 @@ impl Request {
     pub fn parse(arguments: Vec<OsString>, cwd: PathBuf) -> anyhow::Result<Self> {
         let mut args = arguments.into_iter();
         let mut directory = cwd.clone();
+        let mut directory_option = false;
+        let mut named_folder = false;
         let mut command = Vec::new();
         let mut new_window = false;
         while let Some(argument) = args.next() {
@@ -35,6 +37,11 @@ impl Request {
                 bytes,
                 b"--working-directory" | b"--workdir" | b"--directory"
             ) {
+                ensure!(
+                    !named_folder,
+                    "startup: use a folder or a directory option, not both"
+                );
+                directory_option = true;
                 directory = args
                     .next()
                     .context("startup: directory option needs a path")?
@@ -48,6 +55,11 @@ impl Request {
             .find_map(|prefix| bytes.strip_prefix(prefix))
             {
                 use std::os::unix::ffi::OsStringExt;
+                ensure!(
+                    !named_folder,
+                    "startup: use a folder or a directory option, not both"
+                );
+                directory_option = true;
                 ensure!(!path.is_empty(), "startup: directory option needs a path");
                 directory = OsString::from_vec(path.to_vec()).into();
             } else if argument == "-e" || argument == "--command" || argument == "--" {
@@ -62,6 +74,13 @@ impl Request {
                     "startup: command option needs a program"
                 );
                 break;
+            } else if !bytes.starts_with(b"-") {
+                ensure!(
+                    !named_folder && !directory_option,
+                    "startup: name one folder or use a directory option, not both"
+                );
+                directory = argument.into();
+                named_folder = true;
             } else {
                 bail!("startup: unknown option {argument:?}; use --help");
             }

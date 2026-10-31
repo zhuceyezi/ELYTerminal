@@ -18,6 +18,8 @@ use crate::{
     workspace::{self, TITLE, Workspace},
 };
 
+pub mod args;
+
 /// How long the window's size holds before it is kept, so a drag saves once.
 const SETTLE: Duration = Duration::from_millis(500);
 
@@ -47,6 +49,7 @@ pub fn start(cx: &mut App) -> anyhow::Result<()> {
     }
     SettingsStore::init(cx)?;
     i18n::init(cx);
+    crate::interface::init(cx);
     updates::start(cx);
     ShellIntegration::init(cx)?;
     input::bind_keys(cx);

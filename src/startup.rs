@@ -18,7 +18,7 @@ pub fn run() -> anyhow::Result<()> {
     let arguments: Vec<_> = std::env::args_os().skip(1).collect();
     if arguments.len() == 1 && arguments[0] == "--help" {
         println!(
-            "ELYTerminal\n\nUsage: elyterminal [--new-window] [--working-directory DIR] [-e COMMAND [ARGS...]]\n\nLinux reuses the most recently active terminal window by default.\nDirectory aliases: --workdir, --directory. A single command string runs through /bin/sh -c."
+            "ELYTerminal\n\nUsage: elyterminal [--new-window] [FOLDER | --working-directory DIR] [-e COMMAND [ARGS...]]\n\nLinux reuses the most recently active terminal window by default.\nDirectory aliases: --workdir, --directory. A single command string runs through /bin/sh -c."
         );
         return Ok(());
     }
