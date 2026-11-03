@@ -21,7 +21,9 @@ impl Workspace {
             files
         });
         let here = cx.subscribe_in(&files, window, |this, _, Here(folder), window, cx| {
-            this.here(folder.clone(), window, cx)
+            if let Err(error) = this.here(folder.clone(), window, cx) {
+                folder::failed(error, window, cx);
+            }
         });
         Self {
             focus: cx.focus_handle(),
@@ -32,8 +34,16 @@ impl Workspace {
             background: Blur::new(window, SettingsStore::get(cx)),
             dragged: Dragged::default(),
             ticking: None,
+            found: crate::profiles::detected(),
+            choosing_folder: false,
+            folder_actions: false,
             _settings: cx.observe_global_in::<SettingsStore>(window, |this, window, cx| {
                 this.background.follow(window, SettingsStore::get(cx));
+                let settings = SettingsStore::get(cx);
+                if !settings.files_menu || !settings.show_panel || settings.panel != PanelTab::Files
+                {
+                    this.folder_actions = false;
+                }
                 cx.notify();
             }),
             _acted: acted,
@@ -49,7 +59,7 @@ impl Workspace {
         cx: &mut Context<Self>,
     ) -> anyhow::Result<()> {
         let (pty, events) = spawn(&launch, (80, 24), (8, 16), config(SettingsStore::get(cx)))?;
-        self.add(pty, events, launch, window, cx);
+        self.add(pty, events, launch, Vec::new(), window, cx);
         self.select(self.sessions.len() - 1, window, cx);
         Ok(())
     }

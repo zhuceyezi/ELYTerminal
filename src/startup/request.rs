@@ -35,7 +35,7 @@ impl Request {
                 new_window = true;
             } else if matches!(
                 bytes,
-                b"--working-directory" | b"--workdir" | b"--directory"
+                b"--working-directory" | b"--workdir" | b"--directory" | b"--startingDirectory" | b"-d"
             ) {
                 ensure!(
                     !named_folder,
@@ -50,6 +50,7 @@ impl Request {
                 b"--working-directory=".as_slice(),
                 b"--workdir=",
                 b"--directory=",
+                b"--startingDirectory=",
             ]
             .into_iter()
             .find_map(|prefix| bytes.strip_prefix(prefix))
@@ -125,6 +126,7 @@ impl Request {
         self.validate()?;
         let mut launch = shell::launch(
             &SettingsStore::get(cx).shell,
+            &[],
             shell::Start::In(self.directory()),
             &cx.global::<ShellIntegration>().0,
         )?;

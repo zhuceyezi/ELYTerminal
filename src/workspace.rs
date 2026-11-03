@@ -1,7 +1,7 @@
 use std::time::Instant;
 
 use ely_gpui_component::{
-    buttons::{ButtonVariant, IconButton, SegmentedControl},
+    buttons::{ButtonVariant, IconButton},
     i18n::text,
     primitives::{FocusScope, IconName},
     shell::{ColumnShell, ResizeBorder, ShellColumn},
@@ -26,6 +26,8 @@ use crate::{
 
 mod creation;
 mod events;
+mod folder;
+mod panel;
 mod rename;
 mod reorder;
 mod session;
@@ -33,7 +35,7 @@ mod toggles;
 mod transfer;
 mod widths;
 
-use toggles::{column_toggle, show_tab};
+use toggles::column_toggle;
 use widths::{Dragged, Side};
 
 actions!(
@@ -102,6 +104,10 @@ pub struct Workspace {
     dragged: Dragged,
     /// Draws the window at each step of the status marks while one shown moves.
     ticking: Option<Task<()>>,
+    /// The shells this system holds, found as the window opened.
+    found: Vec<crate::profiles::Found>,
+    choosing_folder: bool,
+    folder_actions: bool,
     _settings: Subscription,
     _acted: Subscription,
     session_layout: transfer::Layout,
@@ -118,7 +124,7 @@ impl Workspace {
         cx: &mut Context<Self>,
     ) -> Self {
         let mut workspace = Self::empty(launch.cwd.clone(), window, cx);
-        workspace.add(pty, events, launch, window, cx);
+        workspace.add(pty, events, launch, Vec::new(), window, cx);
         workspace.select(0, window, cx);
         workspace
     }
@@ -128,6 +134,7 @@ impl Workspace {
         pty: Pty,
         events: Events,
         launch: Launch,
+        args: Vec<String>,
         window: &mut Window,
         cx: &mut Context<Self>,
     ) {
@@ -146,6 +153,7 @@ impl Workspace {
             editing: None,
             folder: launch.cwd,
             shell,
+            args,
             reports: launch.reports,
             bell: false,
             waiting: false,
@@ -318,33 +326,29 @@ impl Render for Workspace {
                 .on_click(move |_, window, cx| {
                     workspace.update(cx, |this, cx| this.new_session(window, cx))
                 });
+            let mut column = self
+                .side_column(Side::Sessions, cx)
+                .leading(left)
+                .action(new);
+            if let Some(profiles) = crate::profiles::button(&cx.entity(), &self.found, cx) {
+                column = column.action(profiles);
+            }
             shell = shell.column(
-                self.side_column(Side::Sessions, cx)
-                    .leading(left)
-                    .action(new)
-                    .child(
-                        div()
-                            .id("sessions")
-                            .size_full()
-                            .overflow_y_scroll()
-                            .p_2()
-                            .child(list),
-                    ),
+                column.child(
+                    div()
+                        .id("sessions")
+                        .size_full()
+                        .overflow_y_scroll()
+                        .p_2()
+                        .child(list),
+                ),
             );
         } else {
             terminal = terminal.leading(left);
         }
         if settings.show_panel {
             let tab = settings.panel;
-            let chosen = match tab {
-                PanelTab::Git => "git",
-                PanelTab::Files => "files",
-            };
-            let switch = SegmentedControl::new("panel-tab", chosen)
-                .segment("git", text(cx, "et.panel.git", &[]), None)
-                .segment("files", text(cx, "et.panel.files", &[]), None)
-                .size(ControlSize::Sm)
-                .on_change(|value, _, cx| show_tab(value, cx));
+            let switch = self.panel_tabs(cx);
             let quiet = self
                 .sessions
                 .get(self.active)
@@ -369,6 +373,7 @@ impl Render for Workspace {
                     .action(end)
                     // Below the title bar, clear of Windows' caption buttons.
                     .child(div().flex().justify_center().px_2().pt_2().child(switch))
+                    .child(div().flex_none().child(self.folder_actions(cx)))
                     .children(quiet.then(caption))
                     .child(body(tab == PanelTab::Git).child(self.git.clone().cached(fill())))
                     .child(body(tab == PanelTab::Files).child(self.files.clone())),
