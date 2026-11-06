@@ -35,7 +35,11 @@ impl Request {
                 new_window = true;
             } else if matches!(
                 bytes,
-                b"--working-directory" | b"--workdir" | b"--directory" | b"--startingDirectory" | b"-d"
+                b"--working-directory"
+                    | b"--workdir"
+                    | b"--directory"
+                    | b"--startingDirectory"
+                    | b"-d"
             ) {
                 ensure!(
                     !named_folder,

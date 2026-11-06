@@ -1,7 +1,5 @@
 # ELYTerminal
 
-Linux window-reuse fork on the `linux-window-reuse` branch, based on upstream v0.2.0. The `main` branch remains available for upstream synchronization. See [UPSTREAM.md](UPSTREAM.md) for preserving history and merging updates from the original Gitea server.
-
 [![Release](https://img.shields.io/github/v/release/ELY-Open-Source/ELYTerminal?style=flat-square&color=24292f)](https://github.com/ELY-Open-Source/ELYTerminal/releases/latest)
 [![License](https://img.shields.io/badge/license-MIT-3da639?style=flat-square)](LICENSE)
 [![Rust](https://img.shields.io/badge/Rust-1.95-dea584?style=flat-square)](https://www.rust-lang.org)
@@ -13,13 +11,7 @@ English / [中文](README_zh.md)
 
 A terminal for macOS, Windows and Linux, in Rust on GPUI and Ely components. Sessions sit on the left, the terminal in the middle, Git or Files on the right. Every setting has a control in the settings window.
 
-## Install
-
-A [release on GitHub](https://github.com/ELY-Open-Source/ELYTerminal/releases) carries builds for each platform.
-
-- macOS 11 or later, Apple silicon: open `ELYTerminal-VERSION.dmg` and drag ELYTerminal into Applications. The app is signed with Developer ID and notarized. With Homebrew: `brew install --cask ely-open-source/tap/elyterminal`.
-- Windows 10 or later, x86_64: unzip `ELYTerminal-VERSION-windows-x86_64.zip` and run `elyterminal.exe`, the zip's other files kept beside it. With winget, once Microsoft's catalog holds it: `winget install ELYOpenSource.ELYTerminal`. It is unsigned; SmartScreen and Defender are told apart in [Windows](docs/en_us/install.md#windows).
-- Linux, x86_64: [packages](docs/en_us/install.md).
+Linux window-reuse fork on the `linux-window-reuse` branch, based on upstream v0.2.3. The `main` branch remains available for upstream synchronization. See [UPSTREAM.md](UPSTREAM.md) for preserving history and merging upstream updates.
 
 ## Linux window reuse
 
@@ -51,13 +43,23 @@ existing window instead. Press Escape before crossing the edge to cancel;
 releasing inside the window keeps the session there. The close button and
 in-place rename field keep their existing behavior.
 
+
+## Install
+
+A [release on GitHub](https://github.com/ELY-Open-Source/ELYTerminal/releases) carries builds for each platform.
+
+- macOS 11 or later, Apple silicon: open `ELYTerminal-VERSION.dmg` and drag ELYTerminal into Applications. The app is signed with Developer ID and notarized. With Homebrew: `brew install --cask ely-open-source/tap/elyterminal`.
+- Windows 10 or later, x86_64, or Windows 11 on ARM64: unzip `ELYTerminal-VERSION-windows-x86_64.zip`, or `-windows-aarch64.zip`, and run `elyterminal.exe`, the zip's other files kept beside it. With winget, once Microsoft's catalog holds it: `winget install ELYOpenSource.ELYTerminal`. It is unsigned; SmartScreen and Defender are told apart in [Windows](docs/en_us/install.md#windows).
+- Linux, x86_64: [packages](docs/en_us/install.md).
+
 ## What it does
 
 - Sessions sit on the left, the terminal in the middle, Git or Files on the right.
 - Shell integration for zsh, bash, fish and PowerShell, so Files and Git follow the session's folder.
+- Profiles beside +: your own command lines, and the shells this system holds, WSL distributions and Git Bash among them.
 - Ely peeks over the window's edge and follows the sessions.
 - Images through kitty's graphics protocol, animations too, and the clipboard through kitty's OSC 5522, which asks you before a program reads what it holds, unless you allowed that program for the session or it answers a paste.
-- Background opacity and blur on macOS, Windows, Wayland and X11, and Mica on Windows 11.
+- Background opacity from 0% and blur on macOS, Windows, Wayland and X11, and Mica on Windows 11; a background picture under the terminal or the whole window, sized, placed and tiled as CSS does.
 
 The rest is in [docs/en_us/features.md](docs/en_us/features.md).
 
