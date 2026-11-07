@@ -19,6 +19,7 @@ fn main() {
             app::start(cx).unwrap();
             let launch = launch(
                 &SettingsStore::get(cx).shell,
+                &[],
                 std::env::temp_dir(),
                 &cx.global::<ShellIntegration>().0,
             )
