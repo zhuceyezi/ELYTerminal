@@ -125,7 +125,7 @@ pub fn config(settings: &Settings) -> Config {
 const NAMES: [(&str, &str); 4] = [
     ("TERM", "xterm-256color"),
     ("COLORTERM", "truecolor"),
-    ("TERM_PROGRAM", "ELYTerminal"),
+    ("TERM_PROGRAM", "elyterminal"),
     ("TERM_PROGRAM_VERSION", env!("CARGO_PKG_VERSION")),
 ];
 
