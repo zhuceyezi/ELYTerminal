@@ -9,9 +9,9 @@ use ely_gpui_component::{
     typography::Caption,
 };
 use gpui::{
-    Action, App, AppContext, Context, Entity, FocusHandle, Focusable, InteractiveElement,
-    IntoElement, KeyBinding, ParentElement, Render, StatefulInteractiveElement, StyleRefinement,
-    Styled, Subscription, Task, Window, actions, div, prelude::FluentBuilder,
+    Action, AppContext, Context, Entity, FocusHandle, Focusable, InteractiveElement, IntoElement,
+    ParentElement, Render, StatefulInteractiveElement, StyleRefinement, Styled, Subscription, Task,
+    Window, actions, div, prelude::FluentBuilder,
 };
 
 use crate::{
@@ -24,6 +24,7 @@ use crate::{
     term::{Events, Launch, Pty, TerminalView},
 };
 
+mod control;
 mod creation;
 mod events;
 mod folder;
@@ -62,34 +63,6 @@ pub const CONTEXT: &str = "Workspace";
 
 /// The window's title while the program names none.
 pub const TITLE: &str = "ELYTerminal";
-
-/// Ghostty's keys: Cmd on macOS; off it, Ctrl-Shift for keys a terminal takes, Alt for digits.
-pub fn bind_keys(cx: &mut App) {
-    let (sessions, panel, new, close, digit) = if cfg!(target_os = "macos") {
-        ("cmd-b", "cmd-alt-b", "cmd-t", "cmd-w", "cmd")
-    } else {
-        (
-            "ctrl-shift-b",
-            "ctrl-shift-alt-b",
-            "ctrl-shift-t",
-            "ctrl-shift-w",
-            "alt",
-        )
-    };
-    let context = Some(CONTEXT);
-    cx.bind_keys([
-        KeyBinding::new(sessions, ToggleSessions, context),
-        KeyBinding::new(panel, TogglePanel, context),
-        KeyBinding::new(new, NewSession, context),
-        KeyBinding::new(close, CloseSession, context),
-        KeyBinding::new("ctrl-tab", NextSession, context),
-        KeyBinding::new("ctrl-shift-tab", PreviousSession, context),
-        KeyBinding::new(&format!("{digit}-9"), LastSession, context),
-    ]);
-    cx.bind_keys(
-        (1..=8).map(|n| KeyBinding::new(&format!("{digit}-{n}"), SelectSession(n - 1), context)),
-    );
-}
 
 /// The main window's content: sessions, the terminal, and Git or Files, in Ely's columns.
 pub struct Workspace {
@@ -297,7 +270,7 @@ impl Render for Workspace {
             |settings| settings.show_panel = !settings.show_panel,
             cx,
         );
-        // No menu bar off macOS: a gear opens Settings.
+        // No menu bar off macOS: a gear opens Settings. A narrow header clips its end, so the gear goes first.
         let gear = (!cfg!(target_os = "macos")).then(|| {
             IconButton::new("open-settings", IconName::Settings)
                 .variant(ButtonVariant::Ghost)
@@ -309,8 +282,8 @@ impl Render for Workspace {
             .flex()
             .items_center()
             .gap_2()
-            .children(gear)
-            .child(right);
+            .child(right)
+            .children(gear);
         let mut shell = ColumnShell::new("workspace").glass();
         let shown = self
             .sessions
@@ -334,13 +307,11 @@ impl Render for Workspace {
                 .on_click(move |_, window, cx| {
                     workspace.update(cx, |this, cx| this.new_session(window, cx))
                 });
-            let mut column = self
+            let column = self
                 .side_column(Side::Sessions, cx)
                 .leading(left)
-                .action(new);
-            if let Some(profiles) = crate::profiles::button(&cx.entity(), &self.found, cx) {
-                column = column.action(profiles);
-            }
+                .action(new)
+                .action(crate::profiles::button(&cx.entity(), &self.found, cx));
             shell = shell.column(
                 column.child(
                     div()
