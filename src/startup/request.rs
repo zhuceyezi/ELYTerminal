@@ -126,6 +126,24 @@ impl Request {
         Ok(())
     }
 
+    /// Retains the exact command for later splits and duplicates.
+    pub fn program(&self, shell: &str) -> crate::sessions::Program {
+        let (shell, args, written) = match self.command.as_slice() {
+            [] => (shell.to_owned(), Vec::new(), false),
+            [command] => (
+                "/bin/sh".to_owned(),
+                vec!["-c".to_owned(), command.clone()],
+                true,
+            ),
+            [command, args @ ..] => (command.clone(), args.to_vec(), true),
+        };
+        crate::sessions::Program {
+            shell,
+            args,
+            written,
+        }
+    }
+
     pub fn launch(&self, cx: &gpui::App) -> anyhow::Result<Launch> {
         self.validate()?;
         let mut launch = shell::launch(

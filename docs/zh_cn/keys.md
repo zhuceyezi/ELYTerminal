@@ -2,12 +2,14 @@
 
 [English](../en_us/keys.md) / 中文
 
-设置 › 终端 › 快捷键 列出全部快捷键，按本平台的绑定，并且都可以更改：点「更改」后按下的第一个键即为该命令的新快捷键，Esc 保留原键，退格键让该命令不带快捷键，改过的命令旁边的箭头可恢复原有按键。`settings.json` 里的 `shortcuts` 保存同样的内容，按命令列出按键，例如 `"shortcuts": {"clear": ["ctrl-alt-l"]}`。Tab、Shift-Tab、F6 和 Shift-F6 不能被占用：它们用于移动焦点，在终端里则交给程序。
+设置 › 终端 › 快捷键 列出全部快捷键，按本平台的绑定，并且都可以更改：点「更改」后按下的第一个键即为该命令的新快捷键，Esc 保留原键，退格键让该命令不带快捷键，改过的命令旁边的箭头可恢复原有按键。`settings.json` 里的 `shortcuts` 保存同样的内容，按命令列出按键，例如 `"shortcuts": {"clear": ["ctrl-alt-l"]}`。把某个键分配给一个命令时，它会从另一个命令的原有按键中让出。Tab、Shift-Tab、F6 和 Shift-F6 不能被占用：它们用于移动焦点，在终端里则交给程序。
 
 | | macOS | Windows 和 Linux |
 |---|---|---|
 | 新建会话 | Cmd-T | Ctrl-Shift-T |
-| 关闭会话 | Cmd-W | Ctrl-Shift-W |
+| 关闭窗格，最后一个窗格关闭会话 | Cmd-W | Ctrl-Shift-W |
+| 向右拆分、向下拆分 | Cmd-D、Cmd-Shift-D | Ctrl-Shift-E、Ctrl-Shift-O |
+| 下一个、上一个窗格 | Cmd-]、Cmd-[ | Ctrl-Shift-N、Ctrl-Shift-P |
 | 会话 1 到 8、最后一个 | Cmd-1 到 Cmd-8、Cmd-9 | Alt-1 到 Alt-8、Alt-9 |
 | 下一个、上一个会话 | Ctrl-Tab、Ctrl-Shift-Tab | Ctrl-Tab、Ctrl-Shift-Tab |
 | 会话栏 | Cmd-B | Ctrl-Shift-B |
@@ -19,6 +21,7 @@
 | 清空历史和提示符以上的屏幕 | Cmd-K | Ctrl-Shift-K；在 Windows 上只清空历史 |
 | 放大、缩小、重置大小 | Cmd-=、Cmd-minus、Cmd-0 | Ctrl-=、Ctrl-minus、Ctrl-0 |
 | 打开链接（指针在上面时显示下划线） | Cmd-点按 | Ctrl-点按 |
+| 全屏 | Ctrl-Cmd-F | F11 |
 | 设置 | Cmd-, | Ctrl-, |
 | 最小化 | Cmd-M | |
 | 退出 | Cmd-Q | Ctrl-Shift-Q |

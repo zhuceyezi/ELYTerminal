@@ -12,6 +12,7 @@ use gpui::{
 use crate::term::mac;
 use crate::{
     blur, i18n, keymap, menus,
+    sessions::Program,
     settings::{self, Place, SettingsStore},
     term::{ICONS, Launch, MONO, config, shell::ShellIntegration, spawn},
     themes, updates,
@@ -131,12 +132,47 @@ pub fn start(cx: &mut App) -> anyhow::Result<()> {
     Ok(())
 }
 
-/// Opens the main window running `launch`.
-pub fn open(launch: Launch, cx: &mut App) -> anyhow::Result<WindowHandle<Workspace>> {
+/// Opens the main window running `launch`, started for `program`.
+pub fn open(
+    launch: Launch,
+    program: Program,
+    cx: &mut App,
+) -> anyhow::Result<WindowHandle<Workspace>> {
     let (pty, events) = spawn(&launch, (80, 24), (8, 16), config(SettingsStore::get(cx)))?;
+    open_started((pty, events, launch), program, cx)
+}
+
+/// A session Windows handed over: a new row in the main window, else the first one.
+#[cfg(windows)]
+pub fn adopt(handoff: crate::defterm::Handoff, cx: &mut App) -> anyhow::Result<()> {
+    let title = handoff.title.clone();
+    let started = crate::term::adopt(handoff, config(SettingsStore::get(cx)))?;
+    let main = cx
+        .windows()
+        .into_iter()
+        .find_map(|window| window.downcast::<Workspace>());
+    log::info!("app: a handed session, titled {title:?}, opens");
+    match main {
+        Some(main) => main.update(cx, |workspace, window, cx| {
+            workspace.adopt(started, window, cx);
+            window.activate_window();
+        })?,
+        None => {
+            open_started(started, Program::default(), cx)?;
+        }
+    }
+    cx.activate(true);
+    Ok(())
+}
+
+fn open_started(
+    started: (crate::term::Pty, crate::term::Events, Launch),
+    program: Program,
+    cx: &mut App,
+) -> anyhow::Result<WindowHandle<Workspace>> {
     terminal_window(
         None,
-        move |window, cx| cx.new(|cx| Workspace::new(pty, events, launch, window, cx)),
+        move |window, cx| cx.new(|cx| Workspace::new(started, program, window, cx)),
         cx,
     )
 }

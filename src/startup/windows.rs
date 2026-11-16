@@ -34,6 +34,7 @@ fn remember(handle: WindowHandle<Workspace>, cx: &mut App) {
 
 pub(super) fn open(request: Request, cx: &mut App) -> anyhow::Result<()> {
     let launch = request.launch(cx)?;
+    let program = request.program(&crate::settings::SettingsStore::get(cx).shell);
     let existing = cx.windows();
     let target = (!request.new_window)
         .then(|| {
@@ -49,12 +50,12 @@ pub(super) fn open(request: Request, cx: &mut App) -> anyhow::Result<()> {
         .flatten();
     let window = if let Some(window) = target {
         window.update(cx, |this, window, cx| {
-            this.start_session(launch, window, cx)
+            this.start_session(launch, program, window, cx)
         })??;
         log::info!("startup: reused terminal window");
         window
     } else {
-        let window = app::open(launch, cx)?;
+        let window = app::open(launch, program, cx)?;
         log::info!("startup: created terminal window");
         window
     };

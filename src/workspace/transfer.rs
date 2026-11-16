@@ -5,7 +5,9 @@ use crate::{
     term::TerminalView,
 };
 use anyhow::Context as _;
-use gpui::{Context, Entity, EntityId, Pixels, Point, Subscription, Window, WindowHandle};
+use gpui::{
+    Context, Entity, EntityId, Focusable, Pixels, Point, Subscription, Window, WindowHandle,
+};
 
 mod drag;
 mod list;
@@ -15,7 +17,7 @@ pub(super) use drag::{cancel, handlers};
 pub(super) use list::{Layout, list};
 
 impl Workspace {
-    /// Moves the existing terminal into another window at the requested list position.
+    /// Moves a whole session, keeping its panes and layout.
     pub fn transfer_session(
         &mut self,
         id: EntityId,
@@ -24,26 +26,42 @@ impl Workspace {
         window: &mut Window,
         cx: &mut Context<Self>,
     ) -> anyhow::Result<()> {
+        anyhow::ensure!(
+            self.leaving.is_none(),
+            "app: finish the pending close first"
+        );
+        anyhow::ensure!(
+            target != window.window_handle().downcast::<Self>().unwrap(),
+            "app: use reorder inside the same window"
+        );
         let from = self
             .sessions
             .iter()
-            .position(|session| session.terminal.entity_id() == id)
+            .position(|session| session.id == id)
             .context("app: the session to transfer no longer exists")?;
         self.end_rename(id, true, window, cx);
-        let pid = self.sessions[from].terminal.read(cx).pid();
-        self.sessions[from]
-            .terminal
-            .update(cx, |view, _| view.set_front(false, window));
+        for pane in &self.sessions[from].panes {
+            pane.terminal
+                .update(cx, |view, _| view.set_front(false, window));
+        }
         let mut moved = Some(self.sessions.remove(from));
-        if let Err(error) = target.update(cx, |destination, window, cx| {
-            destination.adopt(
-                moved.take().expect("transferring session"),
-                index,
-                window,
-                cx,
-            );
-            window.activate_window();
-        }) {
+        if let Err(error) = target
+            .update(cx, |destination, window, cx| {
+                anyhow::ensure!(
+                    destination.leaving.is_none(),
+                    "app: destination awaits a close decision"
+                );
+                destination.adopt_transferred(
+                    moved.take().expect("transferring session"),
+                    index,
+                    window,
+                    cx,
+                );
+                window.activate_window();
+                Ok(())
+            })
+            .and_then(|result| result)
+        {
             if let Some(session) = moved {
                 self.sessions.insert(from, session);
                 self.select(self.active, window, cx);
@@ -56,7 +74,7 @@ impl Workspace {
             self.active = sessions::after_close(self.active, from, self.sessions.len());
             self.select(self.active, window, cx);
         }
-        log::info!("app: session {pid} inserted at {index} in another window without restarting");
+        log::info!("app: session {id:?} inserted at {index} in another window without restarting");
         Ok(())
     }
 
@@ -64,11 +82,16 @@ impl Workspace {
         terminal: &Entity<TerminalView>,
         window: &mut Window,
         cx: &mut Context<Self>,
-    ) -> Subscription {
+    ) -> [Subscription; 2] {
         let id = terminal.entity_id();
-        cx.subscribe_in(terminal, window, move |this, _, event, window, cx| {
+        let events = cx.subscribe_in(terminal, window, move |this, _, event, window, cx| {
             this.session_event(id, event, window, cx)
-        })
+        });
+        let focus = terminal.focus_handle(cx);
+        let focused = cx.on_focus(&focus, window, move |this, window, cx| {
+            this.pane_focused(id, window, cx)
+        });
+        [events, focused]
     }
 
     /// Moves a live session into a new window without replacing its terminal or pty.
@@ -82,42 +105,21 @@ impl Workspace {
         let index = self
             .sessions
             .iter()
-            .position(|session| session.terminal.entity_id() == id)
+            .position(|session| session.id == id)
             .context("app: the session to detach no longer exists")?;
-        self.end_rename(id, true, window, cx);
-        let target = app::empty_window(self.sessions[index].folder.clone(), origin, cx)?;
-        let pid = self.sessions[index].terminal.read(cx).pid();
-        self.sessions[index]
-            .terminal
-            .update(cx, |view, _| view.set_front(false, window));
-        let mut moved = Some(self.sessions.remove(index));
-        if let Err(error) = target.update(cx, |destination, window, cx| {
-            destination.adopt(
-                moved.take().expect("a session being transferred"),
-                0,
-                window,
-                cx,
-            );
-            window.activate_window();
-        }) {
-            if let Some(session) = moved {
-                self.sessions.insert(index, session);
-                self.select(self.active, window, cx);
-            }
+        anyhow::ensure!(
+            self.leaving.is_none(),
+            "app: finish the pending close first"
+        );
+        let target = app::empty_window(self.sessions[index].pane().folder.clone(), origin, cx)?;
+        if let Err(error) = self.transfer_session(id, target, 0, window, cx) {
             let _ = target.update(cx, |_, window, _| window.remove_window());
             return Err(error).context("app: could not populate detached window");
         }
-        if self.sessions.is_empty() {
-            window.remove_window();
-        } else {
-            self.active = sessions::after_close(self.active, index, self.sessions.len());
-            self.select(self.active, window, cx);
-        }
-        log::info!("app: session {pid} moved to a new window without restarting");
         Ok(target)
     }
 
-    fn adopt(
+    fn adopt_transferred(
         &mut self,
         mut session: Session,
         index: usize,
@@ -125,10 +127,11 @@ impl Workspace {
         cx: &mut Context<Self>,
     ) {
         session.editing = None;
-        session
-            .terminal
-            .update(cx, |terminal, cx| terminal.move_to_window(window, cx));
-        session._events = Self::watch_terminal(&session.terminal, window, cx);
+        for pane in &mut session.panes {
+            pane.terminal
+                .update(cx, |terminal, cx| terminal.move_to_window(window, cx));
+            pane._events = Self::watch_terminal(&pane.terminal, window, cx);
+        }
         let index = index.min(self.sessions.len());
         if !self.sessions.is_empty() && index <= self.active {
             self.active += 1;

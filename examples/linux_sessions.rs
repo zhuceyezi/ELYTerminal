@@ -24,7 +24,7 @@ fn main() {
                 &cx.global::<ShellIntegration>().0,
             )
             .unwrap();
-            let handle = app::open(launch, cx).unwrap();
+            let handle = app::open(launch, elyterminal::sessions::Program::default(), cx).unwrap();
             cx.spawn(async move |cx| {
                 cx.background_executor()
                     .timer(Duration::from_millis(300))
@@ -44,7 +44,7 @@ fn main() {
                         .update(cx, |workspace, window, cx| {
                             assert_eq!(workspace.sessions().len(), count);
                             let session = &workspace.sessions()[focused];
-                            assert!(session.terminal.focus_handle(cx).is_focused(window));
+                            assert!(session.terminal().focus_handle(cx).is_focused(window));
                         })
                         .unwrap();
                 }
@@ -64,30 +64,30 @@ fn main() {
                     .update(cx, |workspace, _, _| {
                         assert_eq!(workspace.sessions().len(), 2);
                         assert_eq!(
-                            workspace.sessions()[1].folder,
-                            workspace.sessions()[0].folder
+                            workspace.sessions()[1].pane().folder,
+                            workspace.sessions()[0].pane().folder
                         );
                     })
                     .unwrap();
                 let original = handle.update(cx, |workspace, window, cx| {
                     let source = &workspace.sessions()[0];
-                    let (id, shell, folder) = (source.terminal.entity_id(), source.shell.clone(), source.folder.clone());
+                    let (id, shell, folder) = (source.id, source.pane().program.shell.clone(), source.pane().folder.clone());
                     workspace.duplicate(id, window, cx);
                     let copy = &workspace.sessions()[1];
-                    assert_ne!(copy.terminal.entity_id(), id);
-                    assert_eq!(copy.shell, shell);
-                    assert_eq!(copy.folder, folder);
-                    assert!(copy.terminal.focus_handle(cx).is_focused(window));
+                    assert_ne!(copy.id, id);
+                    assert_eq!(copy.pane().program.shell, shell);
+                    assert_eq!(copy.pane().folder, folder);
+                    assert!(copy.terminal().focus_handle(cx).is_focused(window));
                     workspace.reorder(0, 2, cx);
-                    assert_eq!(workspace.sessions()[2].terminal.entity_id(), id);
-                    (id, workspace.sessions()[0].terminal.entity_id())
+                    assert_eq!(workspace.sessions()[2].id, id);
+                    (id, workspace.sessions()[0].id)
                 }).unwrap();
                 handle.update(cx, |workspace, window, cx| {
-                    assert!(workspace.sessions()[0].terminal.focus_handle(cx).is_focused(window));
-                    assert_eq!(workspace.sessions()[2].terminal.entity_id(), original.0);
-                    assert_eq!(workspace.sessions()[0].terminal.entity_id(), original.1);
+                    assert!(workspace.sessions()[0].terminal().focus_handle(cx).is_focused(window));
+                    assert_eq!(workspace.sessions()[2].id, original.0);
+                    assert_eq!(workspace.sessions()[0].id, original.1);
                     workspace.reorder(2, 0, cx);
-                    assert!(workspace.sessions()[1].terminal.focus_handle(cx).is_focused(window));
+                    assert!(workspace.sessions()[1].terminal().focus_handle(cx).is_focused(window));
                 }).unwrap();
                 println!(
                     "SESSION ACTION REGRESSION PASSED: new, select, close, focus, Start in Session, duplicate shell/folder, reorder identity/focus"

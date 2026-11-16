@@ -63,7 +63,7 @@ pub(super) fn begin(
     window: &mut Window,
     cx: &mut App,
 ) -> Entity<Label> {
-    if cx.global::<Drag>().blocked {
+    if cx.global::<Drag>().blocked || workspace.read(cx).leaving.is_some() {
         let handle = window.window_handle();
         cx.defer(move |cx| {
             let _ = handle.update(cx, |_, window, cx| cx.stop_active_drag(window));
@@ -78,7 +78,7 @@ pub(super) fn begin(
         .read(cx)
         .sessions
         .iter()
-        .find(|s| s.terminal.entity_id() == id)
+        .find(|s| s.id == id)
         .expect("dragged session");
     let held = Held {
         source,
@@ -199,13 +199,13 @@ pub(super) fn release(cx: &mut App) {
     cx.refresh_windows();
     cx.defer(move |cx| {
         let result = held.source.update(cx, |source, window, cx| {
+            anyhow::ensure!(
+                source.leaving.is_none(),
+                "app: finish the pending close first"
+            );
             if let Some((target, index)) = held.target {
                 if target == held.source {
-                    if let Some(from) = source
-                        .sessions
-                        .iter()
-                        .position(|s| s.terminal.entity_id() == held.id)
-                    {
+                    if let Some(from) = source.sessions.iter().position(|s| s.id == held.id) {
                         source.reorder(from, index.min(source.sessions.len() - 1), cx);
                     }
                     Ok(())

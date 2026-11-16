@@ -87,12 +87,9 @@ pub(in crate::workspace) fn list(
         .sessions
         .iter()
         .enumerate()
-        .filter(|(_, session)| Some(session.terminal.entity_id()) != omitted)
+        .filter(|(_, session)| Some(session.id) != omitted)
         .collect();
-    let live: Vec<_> = rows
-        .iter()
-        .map(|(_, session)| session.terminal.entity_id())
-        .collect();
+    let live: Vec<_> = rows.iter().map(|(_, session)| session.id).collect();
     let mut flip = Flip::new("session-rows");
     let colors = cx.theme().colors.clone();
     for index in 0..=rows.len() {
@@ -133,8 +130,8 @@ pub(in crate::workspace) fn list(
         let Some((source_index, session)) = rows.get(index).copied() else {
             continue;
         };
-        let id = session.terminal.entity_id();
-        let pid = session.terminal.read(cx).pid();
+        let id = session.id;
+        let key = session.id.as_u64();
         let row = sessions::row(
             &workspace,
             source_index,
@@ -147,7 +144,7 @@ pub(in crate::workspace) fn list(
         let source = workspace.clone();
         let measured = workspace.clone();
         let row = div()
-            .id(("session-label", pid as usize))
+            .id(("session-label", key as usize))
             .relative()
             .pb_0p5()
             .child(row)
@@ -171,7 +168,7 @@ pub(in crate::workspace) fn list(
                     drag::begin(&source, id, offset, window, cx)
                 })
             });
-        flip = flip.row(pid.to_string(), row);
+        flip = flip.row(key.to_string(), row);
     }
     div()
         .relative()

@@ -111,6 +111,18 @@ impl SettingsWindow {
             settings.right_click_paste,
             |settings, on| settings.right_click_paste = on,
         );
+        let guard = switch(
+            &this,
+            "paste_protection",
+            settings.paste_protection,
+            |settings, on| settings.paste_protection = on,
+        );
+        let quit = switch(
+            &this,
+            "confirm_quit",
+            settings.confirm_quit,
+            |settings, on| settings.confirm_quit = on,
+        );
         let ely = switch(&this, "ely", settings.ely, |settings, on| settings.ely = on);
         let drag = switch(
             &this,
@@ -133,6 +145,16 @@ impl SettingsWindow {
                 SettingsRow::new(word("et.terminal.right_click_paste"))
                     .description(word("et.terminal.right_click_paste_hint"))
                     .control(right),
+            )
+            .row(
+                SettingsRow::new(word("et.terminal.paste_protection"))
+                    .description(word("et.terminal.paste_protection_hint"))
+                    .control(guard),
+            )
+            .row(
+                SettingsRow::new(word("et.terminal.confirm_quit"))
+                    .description(word("et.terminal.confirm_quit_hint"))
+                    .control(quit),
             )
             .row(
                 SettingsRow::new(word("et.terminal.drag_sessions"))
@@ -171,7 +193,9 @@ impl SettingsWindow {
                     )),
             );
         #[cfg(windows)]
-        let section = section.row(super::explorer::row(&cx.entity(), cx));
+        let section = section
+            .row(super::explorer::row(&cx.entity(), cx))
+            .row(super::defterm::row(&cx.entity(), cx));
         let keys = self.shortcuts(cx);
         let profiles = self.profiles_section(cx);
         div()

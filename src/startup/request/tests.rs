@@ -87,3 +87,23 @@ fn invalid_launches_are_rejected_before_reaching_the_window() {
     request.command = vec!["bad\0command".into()];
     assert!(request.validate().is_err());
 }
+
+#[test]
+fn pane_program_preserves_custom_command_semantics() {
+    let default = parse(&[]).unwrap().program("/bin/fish");
+    assert_eq!(default.shell, "/bin/fish");
+    assert!(default.args.is_empty());
+    assert!(!default.written);
+    let single = parse(&["-e", "printf hi | cat"])
+        .unwrap()
+        .program("/bin/fish");
+    assert_eq!(single.shell, "/bin/sh");
+    assert_eq!(single.args, ["-c", "printf hi | cat"]);
+    assert!(single.written);
+    let explicit = parse(&["-e", "printf", "%s", "hello world"])
+        .unwrap()
+        .program("/bin/fish");
+    assert_eq!(explicit.shell, "printf");
+    assert_eq!(explicit.args, ["%s", "hello world"]);
+    assert!(explicit.written);
+}
