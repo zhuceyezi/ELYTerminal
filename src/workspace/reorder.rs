@@ -25,11 +25,12 @@ impl Workspace {
 
     /// Moves session `from` to place `to`, as a drag asks.
     pub fn reorder(&mut self, from: usize, to: usize, cx: &mut Context<Self>) {
-        if self.leaving.is_some()
-            || from == to
-            || from >= self.sessions.len()
-            || to >= self.sessions.len()
-        {
+        let block = self
+            .blocks()
+            .into_iter()
+            .find(|(_, places)| places.contains(&from));
+        let inside = block.is_some_and(|(_, places)| places.contains(&to));
+        if self.leaving.is_some() || from == to || !inside {
             return;
         }
         log::info!("app: session {} moves to {}", from + 1, to + 1);

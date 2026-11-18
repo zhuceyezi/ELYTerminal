@@ -55,19 +55,27 @@ pub(in crate::workspace) fn list(
         let home = dirs::home_dir();
         let reset = workspace.clone();
         cx.defer(move |cx| reset.update(cx, |this, _| this.session_layout = Layout::default()));
-        return ely_gpui_component::lists::List::new()
-            .children(this.sessions.iter().enumerate().map(|(index, session)| {
-                sessions::row(
-                    &workspace,
-                    index,
-                    session,
-                    index == this.active,
-                    home.as_deref(),
-                    now,
-                    cx,
-                )
-            }))
-            .into_any_element();
+        let groups: Vec<_> = this.groups.iter().map(|g| (g.id, g.name.clone())).collect();
+        let mut list = div().flex().flex_col().w_full();
+        for (group, places) in this.blocks() {
+            if let Some(group) = group.and_then(|id| this.groups.iter().find(|g| g.id == id)) {
+                list = list.child(this.header(group, cx));
+            }
+            list = list.child(ely_gpui_component::lists::List::new().children(places.map(
+                |index| {
+                    sessions::row(
+                        &workspace,
+                        (index, index == this.active),
+                        &this.sessions[index],
+                        home.as_deref(),
+                        now,
+                        &groups,
+                        cx,
+                    )
+                },
+            )));
+        }
+        return list.into_any_element();
     }
     drag::init(window, cx);
     let workspace = cx.entity();
@@ -83,6 +91,7 @@ pub(in crate::workspace) fn list(
             .map(|(_, index)| index)
     });
     let home = dirs::home_dir();
+    let groups: Vec<_> = this.groups.iter().map(|g| (g.id, g.name.clone())).collect();
     let rows: Vec<_> = this
         .sessions
         .iter()
@@ -93,6 +102,13 @@ pub(in crate::workspace) fn list(
     let mut flip = Flip::new("session-rows");
     let colors = cx.theme().colors.clone();
     for index in 0..=rows.len() {
+        if let Some((_, session)) = rows.get(index)
+            && let Some(group) = session.group
+            && (index == 0 || rows[index - 1].1.group != Some(group))
+            && let Some(group) = this.groups.iter().find(|g| g.id == group)
+        {
+            flip = flip.row(format!("group-{}", group.id), this.header(group, cx));
+        }
         if insertion == Some(index) {
             let held = held.as_ref().unwrap();
             let gap = div()
@@ -134,11 +150,11 @@ pub(in crate::workspace) fn list(
         let key = session.id.as_u64();
         let row = sessions::row(
             &workspace,
-            source_index,
+            (source_index, source_index == this.active),
             session,
-            source_index == this.active,
             home.as_deref(),
             now,
+            &groups,
             cx,
         );
         let source = workspace.clone();

@@ -42,6 +42,9 @@ while True:
                 let input=workspace.sessions()[0].editing.as_ref().unwrap().0.clone();
                 input.update(cx,|input,cx| input.set_text("Live task".to_string(),cx));
                 workspace.end_rename(terminal.entity_id(),true,window,cx);
+                workspace.new_group(terminal.entity_id(), window, cx);
+                let group = workspace.sessions()[0].group.unwrap();
+                workspace.end_group_rename(group, true, window, cx);
                 window.dispatch_action(Box::new(NewSession),cx);
                 terminal
             }).unwrap();
@@ -56,6 +59,7 @@ while True:
                 assert_eq!(workspace.sessions().len(),1);
                 assert_eq!(workspace.sessions()[0].id,terminal.entity_id());
                 assert_eq!(workspace.sessions()[0].name,"Live task");
+                assert!(workspace.sessions()[0].group.is_some(), "detaching keeps the group");
                 assert_eq!(terminal.read(cx).pid(),pid);
                 assert!(terminal.focus_handle(cx).is_focused(window));
                 terminal.update(cx,|view,cx| view.replace_text_in_range(None,"movefolder\n",window,cx));
@@ -72,6 +76,8 @@ while True:
             assert!(target.update(cx,|_,_,_|()).is_err());
             source.update(cx,|workspace,window,cx| {
                 assert_eq!(workspace.sessions().len(),1);
+                let group = workspace.sessions()[0].group.unwrap();
+                workspace.ungroup(group, window, cx);
                 window.dispatch_action(Box::new(NewSession),cx);
             }).unwrap();
             cx.background_executor().timer(Duration::from_millis(200)).await;

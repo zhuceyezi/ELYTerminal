@@ -38,6 +38,8 @@ impl Workspace {
             choosing_folder: false,
             folder_actions: false,
             leaving: None,
+            groups: Vec::new(),
+            _kept: restore::Kept::at_quit(cx),
             _settings: cx.observe_global_in::<SettingsStore>(window, |this, window, cx| {
                 this.background.follow(window, SettingsStore::get(cx));
                 let settings = SettingsStore::get(cx);
@@ -62,7 +64,14 @@ impl Workspace {
     ) -> anyhow::Result<()> {
         let (pty, events) = spawn(&launch, (80, 24), (8, 16), config(SettingsStore::get(cx)))?;
         self.add((pty, events, launch), program, window, cx);
-        self.select(self.sessions.len() - 1, window, cx);
+        let id = self.sessions.last().expect("new session").id;
+        self.arrange();
+        let index = self
+            .sessions
+            .iter()
+            .position(|session| session.id == id)
+            .unwrap();
+        self.select(index, window, cx);
         Ok(())
     }
 }

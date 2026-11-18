@@ -1,4 +1,4 @@
-//! What Ely feels from the sessions' marks, and her pose at each moment of it, moving as the films move her.
+//! What Ely feels from the shown session's mark, and her pose at each moment of it, moving as the films move her.
 
 mod curves;
 #[cfg(test)]
@@ -12,8 +12,8 @@ use self::curves::{
 };
 use crate::sessions::orb::Look;
 
-/// What the sessions ask of her, least pressing first.
-#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
+/// What a mark asks of her.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Mood {
     Calm,
     Done,
@@ -22,19 +22,15 @@ pub enum Mood {
     Waiting,
 }
 
-/// The most pressing of the marks' looks; calm with none.
-pub fn mood(looks: impl IntoIterator<Item = Look>) -> Mood {
-    looks
-        .into_iter()
-        .map(|look| match look {
-            Look::Waiting => Mood::Waiting,
-            Look::Error => Mood::Error,
-            Look::Working(_) => Mood::Working,
-            Look::Done => Mood::Done,
-            Look::Idle => Mood::Calm,
-        })
-        .max()
-        .unwrap_or(Mood::Calm)
+/// The mood a mark's look asks for.
+pub fn mood(look: Look) -> Mood {
+    match look {
+        Look::Waiting => Mood::Waiting,
+        Look::Error => Mood::Error,
+        Look::Working(_) => Mood::Working,
+        Look::Done => Mood::Done,
+        Look::Idle => Mood::Calm,
+    }
 }
 
 /// Seconds she cheers a program that finished, and calm lasts, from her mood's start or the last press, before she dozes.
@@ -45,6 +41,8 @@ const PETTED: f32 = 1.5;
 /// Seconds she takes to rise from behind the edge, from as deep as she is tall.
 const RISE: f32 = 0.6;
 const DEPTH: f32 = 280.0;
+/// Units she sinks while she peeks low: her brows under the edge, at her highest hop too.
+pub const LOW: f32 = 188.0;
 /// Seconds she takes to ease from one act into the next.
 pub const EASE: f32 = 0.3;
 

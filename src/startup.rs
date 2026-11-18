@@ -1,6 +1,7 @@
 mod activation;
 mod ipc;
 mod request;
+mod restore;
 mod windows;
 
 use anyhow::Context as _;
@@ -29,6 +30,7 @@ pub fn run() -> anyhow::Result<()> {
         );
         return Ok(());
     }
+    let keeps = arguments.iter().all(|arg| arg == "--new-window");
     let request = Request::parse(arguments, std::env::current_dir()?)?;
     let Instance::Owner(owner) = ipc::claim(&request)? else {
         return Ok(());
@@ -40,7 +42,9 @@ pub fn run() -> anyhow::Result<()> {
             let started = (|| {
                 ely_gpui_component::init(cx).context("startup: Ely initialization failed")?;
                 app::start(cx)?;
-                windows::open(request, cx)?;
+                if !restore::open(keeps, cx)? {
+                    windows::open(request, cx)?;
+                }
                 anyhow::Ok(())
             })();
             if let Err(error) = started {

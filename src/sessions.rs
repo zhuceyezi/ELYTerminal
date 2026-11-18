@@ -23,11 +23,12 @@ use crate::{
     workspace::{TITLE, Workspace},
 };
 
-mod menu;
+pub mod menu;
 pub mod orb;
 mod panes;
+pub mod saved;
 
-pub use panes::{Layout, Pane, Program};
+pub use panes::{Layout, Pane, Program, Toward};
 
 use orb::Look;
 
@@ -49,6 +50,8 @@ pub struct Session {
     pub waiting: bool,
     /// The look its mark shows, and since when.
     pub look: Option<(Look, Instant)>,
+    /// The group its row sits in; none sits above every group.
+    pub group: Option<u64>,
 }
 
 impl Session {
@@ -125,11 +128,11 @@ pub fn after_close(active: usize, closed: usize, left: usize) -> usize {
 /// Session `index`'s row: its title and folder, the mark of its status, a bell while one rang unseen, a button that closes it.
 pub fn row(
     workspace: &Entity<Workspace>,
-    index: usize,
+    (index, active): (usize, bool),
     session: &Session,
-    active: bool,
     home: Option<&Path>,
     now: Instant,
+    groups: &[(u64, String)],
     cx: &App,
 ) -> impl IntoElement {
     let pid = session.id.as_u64() as usize;
@@ -184,7 +187,8 @@ pub fn row(
     if !SettingsStore::get(cx).session_menu {
         return item.into_any_element();
     }
-    ContextMenu::new(("session-menu", pid), menu::row(workspace, session.id, cx))
+    let offered = menu::row(workspace, (session.id, session.group), groups, cx);
+    ContextMenu::new(("session-menu", pid), offered)
         .w_full()
         .child(item)
         .into_any_element()

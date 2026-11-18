@@ -11,7 +11,7 @@ English / [中文](README_zh.md)
 
 A terminal for macOS, Windows and Linux, in Rust on GPUI and Ely components. Sessions sit on the left, the terminal in the middle, Git or Files on the right. Every setting has a control in the settings window.
 
-Linux window-reuse fork on the `linux-window-reuse` branch, based on upstream v0.2.3. The `main` branch remains available for upstream synchronization. See [UPSTREAM.md](UPSTREAM.md) for preserving history and merging upstream updates.
+Linux window-reuse fork on the `linux-window-reuse` branch, based on upstream v0.2.6. The `main` branch remains available for upstream synchronization. See [UPSTREAM.md](UPSTREAM.md) for preserving history and merging upstream updates.
 
 ## Linux window reuse
 
@@ -20,8 +20,14 @@ The first invocation owns a socket in a private directory under `XDG_RUNTIME_DIR
 An invocation waits for the owner to create its session and reports a failed launch to stderr.
 Windows and macOS keep their existing startup behavior.
 
+A first launch without an explicit folder or command restores the saved sessions when enabled.
+Sessions from all terminal windows are saved together and restored into one window, preserving groups, pane layouts and each session’s focused pane.
+The first non-empty saved window supplies the selected session; window positions are not restored separately.
+An explicit folder or command neither restores nor overwrites saved sessions for that owner process.
+Later launches reuse the owner without loading the saved sessions again.
+
 ```sh
-elyterminal                                      # a session in the caller's directory
+elyterminal                                      # restore, or a session in the caller's directory
 elyterminal --working-directory '/path/to/folder' # an explicit directory
 elyterminal --new-window                         # a separate window
 elyterminal -e htop                               # a program in the reused window
@@ -56,9 +62,10 @@ A [release on GitHub](https://github.com/ELY-Open-Source/ELYTerminal/releases) c
 
 - Sessions sit on the left, the terminal in the middle, Git or Files on the right.
 - Shell integration for zsh, bash, fish and PowerShell, so Files and Git follow the session's folder.
-- A session splits into panes, right or down, each its own terminal.
+- A session splits into panes, right or down, each its own terminal; a drag resizes them and a key swaps them.
+- Sessions gather in named groups and open again at the next start.
 - Profiles beside +: your own command lines, and the shells this system holds, WSL distributions and Git Bash among them.
-- Ely peeks over the window's edge and follows the sessions.
+- Ely peeks over the window's edge and follows the session you are in.
 - Every shortcut can be changed, and `elyterminal ctl` lets scripts and agents list, read and type into the running sessions, once Settings turns it on.
 - Images through kitty's graphics protocol, animations too, and the clipboard through kitty's OSC 5522, which asks you before a program reads what it holds, unless you allowed that program for the session or it answers a paste.
 - Background opacity from 0% and blur on macOS, Windows, Wayland and X11, and Mica on Windows 11; a background picture under the terminal or the whole window, sized, placed and tiled as CSS does, with a gradient over it, its own opacity and a mask.
@@ -81,7 +88,7 @@ A file that does not parse, or holds a value out of range, stops the start with 
 
 Settings › Appearance › Language shows the interface in English or 简体中文.
 
-Settings › Terminal checks for a newer release at start and once a day, or at once with Check now; a newer one shows a Download button that opens its page. The check runs `curl`, which macOS and Windows ship.
+Settings › Terminal checks for a newer release at start and once a day, or at once with Check now; a newer one shows Update, which downloads and installs it in the app, its SHA-256 checked, then Restart. The check and the download run `curl`, which macOS and Windows ship.
 
 ## Build
 

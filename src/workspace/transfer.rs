@@ -44,6 +44,12 @@ impl Workspace {
             pane.terminal
                 .update(cx, |view, _| view.set_front(false, window));
         }
+        let group = self.sessions[from].group.and_then(|id| {
+            self.groups
+                .iter()
+                .find(|g| g.id == id)
+                .map(|g| g.name.clone())
+        });
         let mut moved = Some(self.sessions.remove(from));
         if let Err(error) = target
             .update(cx, |destination, window, cx| {
@@ -54,6 +60,7 @@ impl Workspace {
                 destination.adopt_transferred(
                     moved.take().expect("transferring session"),
                     index,
+                    group,
                     window,
                     cx,
                 );
@@ -68,6 +75,8 @@ impl Workspace {
             }
             return Err(error).context("app: session transfer destination closed");
         }
+        self.prune_groups(window, cx);
+        self.keep(cx);
         if self.sessions.is_empty() {
             window.remove_window();
         } else {
@@ -123,10 +132,23 @@ impl Workspace {
         &mut self,
         mut session: Session,
         index: usize,
+        group: Option<String>,
         window: &mut Window,
         cx: &mut Context<Self>,
     ) {
         session.editing = None;
+        session.group = group.map(|name| {
+            if let Some(group) = self.groups.iter().find(|group| group.name == name) {
+                return group.id;
+            }
+            let id = self.groups.iter().map(|group| group.id).max().unwrap_or(0) + 1;
+            self.groups.push(super::groups::Group {
+                id,
+                name,
+                editing: None,
+            });
+            id
+        });
         for pane in &mut session.panes {
             pane.terminal
                 .update(cx, |terminal, cx| terminal.move_to_window(window, cx));
@@ -136,7 +158,15 @@ impl Workspace {
         if !self.sessions.is_empty() && index <= self.active {
             self.active += 1;
         }
+        let id = session.id;
         self.sessions.insert(index, session);
+        self.arrange();
+        let index = self
+            .sessions
+            .iter()
+            .position(|session| session.id == id)
+            .unwrap();
         self.select(index, window, cx);
+        self.keep(cx);
     }
 }

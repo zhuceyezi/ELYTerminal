@@ -51,6 +51,11 @@ pub fn start(cx: &mut App) -> anyhow::Result<()> {
     SettingsStore::init(cx)?;
     i18n::init(cx);
     crate::interface::init(cx);
+    #[cfg(windows)]
+    updates::windows::sweep();
+    // An AppImage's mount goes with it, and an update renames over a binary, so a restart's path is taken now.
+    #[cfg(target_os = "linux")]
+    cx.set_restart_path(updates::linux::restart_path()?);
     updates::start(cx);
     ShellIntegration::init(cx)?;
     settings::window::init(cx);
@@ -165,6 +170,31 @@ pub fn adopt(handoff: crate::defterm::Handoff, cx: &mut App) -> anyhow::Result<(
     Ok(())
 }
 
+/// The folder a `file://` URL the system hands over names, as macOS does a folder dropped on the icon.
+pub fn dropped_folder(url: &str) -> anyhow::Result<std::path::PathBuf> {
+    crate::term::file_uri(url.as_bytes())
+        .filter(|path| path.is_dir())
+        .with_context(|| format!("app: {url} names no folder to open"))
+}
+
+/// A folder dropped on the app's icon while it runs: a session there in the main window.
+pub fn dropped(url: &str, cx: &mut App) -> anyhow::Result<()> {
+    let folder = dropped_folder(url)?;
+    log::info!("app: {} dropped on the icon", folder.display());
+    let main = cx
+        .windows()
+        .into_iter()
+        .find_map(|window| window.downcast::<Workspace>())
+        .context("app: no main window for a dropped folder")?;
+    main.update(cx, |workspace, window, cx| {
+        window.activate_window();
+        workspace.here(folder, window, cx)
+    })??;
+    cx.activate(true);
+    Ok(())
+}
+
+/// Opens the main window on a started session.
 fn open_started(
     started: (crate::term::Pty, crate::term::Events, Launch),
     program: Program,
