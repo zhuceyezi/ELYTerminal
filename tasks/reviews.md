@@ -155,3 +155,70 @@ Reviews from here on run in Claude Code on Kimi K3.1 Pro High, in a herdr pane.
 ## T170
 
 - v0.2.3 published at c82e206: CI passed on macOS, Linux, Windows and Windows ARM64 (run 42147003020); the Windows x86_64 zip from `scripts/windows-zip.ps1` on the owner's PC after its 447 tests (sha256 ad87763d…); the ARM64 zip from CI; the four Linux packages from run 42147003019, checked against its SHA-256 file; the disk image from Release run 42148683456, stapled and accepted by Gatekeeper as notarized Developer ID, its app 0.2.3. The version-less links resolve to it. #78 and #79 answered and closed; the tap holds 0.2.3; winget: microsoft/winget-pkgs#471905.
+
+## T221
+
+- Round 1, working tree before its commit: PASS. No findings.
+
+## T222
+
+- Round 1, working tree before its commit: PASS. No findings.
+
+## T223
+
+- Round 1, working tree before its commit: PASS. No findings.
+
+## T224
+
+- Round 1, working tree before its commit: PASS. No findings.
+
+## T225
+
+- Round 1, working tree before its commit: PASS. No findings.
+
+## T226
+
+- Round 1, working tree and gpui-pre-linux 785b93a: PASS. No findings.
+
+## T227
+
+- Round 1, working tree, Ely 672222c and 01ddf87: PASS. No findings.
+
+## T228
+
+- Round 1, working tree before its commit: PASS. No findings.
+
+## T229
+
+- Round 1, working tree, Ely e0c380f and de9db1b: PASS. No findings.
+
+## T230
+
+- Round 1, working tree, Ely 54d80b5 and 0da6c59: PASS. No findings.
+
+## T231
+
+- Round 1, working tree: FAIL. A remote tree's drag typed its path quoted for the local launcher's shell, PowerShell's or cmd's, not the remote POSIX shell. `type_paths` now takes whether the path lies on the remote host and quotes POSIX there.
+- Round 2: PASS.
+
+## T232
+
+- Round 1, working tree before its commit: PASS. No findings.
+
+## T233
+
+- Round 1, working tree: FAIL. The uninstaller put `$INSTDIR` inside a single-quoted PowerShell string, so a folder with `'` broke it; PATH entries compared as written, so `%LOCALAPPDATA%\Programs\ELYTerminal` was not this copy's; Add trimmed trailing empty entries. The folder now reaches PowerShell through `ELY_FOLDER`, entries compare expanded through `term::env::expand` over `fresh()`, and Add appends without trimming.
+- Round 2: PASS.
+
+## T234
+
+- Round 1, working tree: PASS. No findings.
+
+## T235
+
+- Round 1, working tree: FAIL. The remote OSC 7 lines sent `$PWD` unescaped and zsh's `print -P` expanded `%`; the Linux settings folder ignored `XDG_CONFIG_HOME`; the shared-connection claim was held false under `ControlMaster=no`. The lines escape `%` through `printf`, the folder names `XDG_CONFIG_HOME`; the third stands, ssh_config(5) saying a session under `no` reuses an existing master.
+- Round 2: PASS.
+
+## T236
+
+- Round 1, working tree: PASS. No findings.

@@ -99,7 +99,7 @@ pub enum PanelTab {
     Files,
 }
 
-/// Where the background picture paints: the terminal's column or the window below the title bar.
+/// Where the background picture paints: the terminal's column or the whole window.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum BackgroundScope {
@@ -133,7 +133,7 @@ pub struct Settings {
     pub custom_themes: Vec<themes::CustomTheme>,
     /// A picture under the terminal; empty for none.
     pub background_image: String,
-    /// Where the picture paints: the terminal's column or the window below the title bar.
+    /// Where the picture paints: the terminal's column or the whole window.
     pub background_scope: BackgroundScope,
     /// How the picture fills its box, as CSS's `background-size`.
     pub background_size: PictureSize,
@@ -281,7 +281,7 @@ impl Default for Settings {
             padding_y: 8.0,
             scrollback: 10_000,
             option_as_alt: OptionAsAlt::Off,
-            natural_text_editing: false,
+            natural_text_editing: cfg!(target_os = "macos"),
             copy_on_select: false,
             right_click_paste: cfg!(windows),
             paste_protection: true,
@@ -387,7 +387,7 @@ impl Settings {
             "font_fallbacks holds an empty family"
         );
         if !self.shell.is_empty() {
-            program_path(&self.shell)?;
+            program::console(&program_path(&self.shell)?).context("shell")?;
         }
         if !self.start_folder.is_empty() {
             start_folder(&self.start_folder)?;

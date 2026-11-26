@@ -20,7 +20,7 @@ use crate::{
     git::panel::{Acted, GitPanel},
     menus,
     sessions::{self, Layout, Program, Session, orb},
-    settings::{PanelTab, SettingsStore, window::OpenSettings},
+    settings::{PanelTab, SettingsStore},
     term::{Events, Launch, Pty},
 };
 
@@ -292,14 +292,7 @@ impl Render for Workspace {
             |settings| settings.show_panel = !settings.show_panel,
             cx,
         );
-        // No menu bar off macOS: a gear opens Settings. A narrow header clips its end, so the gear goes first.
-        let gear = (!cfg!(target_os = "macos")).then(|| {
-            IconButton::new("open-settings", IconName::Settings)
-                .variant(ButtonVariant::Ghost)
-                .size(ControlSize::Sm)
-                .tooltip(text(cx, "et.settings.title", &[]))
-                .on_click(|_, window, cx| window.dispatch_action(Box::new(OpenSettings), cx))
-        });
+        let gear = toggles::gear(cx);
         let end = div()
             .flex()
             .items_center()
@@ -309,6 +302,7 @@ impl Render for Workspace {
         let this = cx.entity();
         let mut shell = ColumnShell::new("workspace")
             .glass()
+            .headers(!window.is_fullscreen())
             .on_close(move |window, cx| {
                 if !this.update(cx, |this, cx| this.asks(Leave::Window, cx)) {
                     this.update(cx, |this, cx| this.flush(cx));
@@ -316,10 +310,16 @@ impl Render for Workspace {
                 }
             });
         let weak = cx.entity().downgrade();
-        let shown = (self.sessions.get(self.active))
-            .map(|session| panes::draw(&session.layout, session, &weak, window, cx));
+        let shown = (self.sessions.get(self.active)).map(|session| {
+            let many = session.panes.len() > 1;
+            div()
+                .size_full()
+                .when(many, |panes| panes.p(cx.theme().handle_hit()))
+                .child(panes::draw(&session.layout, session, &weak, window, cx))
+        });
         let mut terminal = ShellColumn::new("terminal")
             .title(self.title().to_string())
+            .title_menu(rename::header(&cx.entity(), cx))
             .child(
                 div()
                     .relative()
