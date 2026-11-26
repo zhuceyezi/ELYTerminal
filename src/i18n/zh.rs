@@ -72,6 +72,11 @@ pub const MESSAGES: &[(&str, &str)] = &[
     ("et.appearance.weight", "字重"),
     ("et.appearance.line_height", "行高"),
     ("et.appearance.ligatures", "连字"),
+    ("et.appearance.adaptive_terminal_colors", "自动适配终端配色"),
+    (
+        "et.appearance.adaptive_terminal_colors_hint",
+        "根据当前终端背景调整对比度不足的文字颜色。",
+    ),
     ("et.appearance.cursor", "光标"),
     ("et.appearance.style", "样式"),
     ("et.cursor.block", "方块"),

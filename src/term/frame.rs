@@ -7,6 +7,9 @@ use alacritty_terminal::{
 };
 use gpui::Hsla;
 
+mod contrast;
+use contrast::Contrast;
+
 use super::{
     boxes,
     ink::{DIM, Ink},
@@ -92,6 +95,7 @@ pub fn frame<T: EventListener>(
     lit: &[(Match, Hsla)],
     link: Option<&Match>,
 ) -> Frame {
+    let mut contrast = ink.adaptive_colors.then(|| Contrast::new(ink.bg));
     let content = term.renderable_content();
     let offset = content.display_offset as i32;
     let mut rows = vec![Row::default(); term.screen_lines()];
@@ -101,6 +105,21 @@ pub fn frame<T: EventListener>(
         let (point, cell) = (indexed.point, indexed.cell);
         let row = (point.line.0 + offset) as usize;
         let mut look = style(cell, ink, content.colors);
+        if let Some(contrast) = &mut contrast
+            && (look.bg.is_none()
+                || (cell.flags.contains(Flags::INVERSE)
+                    && ink.resolve(cell.bg, content.colors) == ink.bg))
+            && !cell.flags.intersects(Flags::HIDDEN | Flags::DIM)
+            && !powerline(cell.c)
+            && !boxes::drawn(cell.c)
+            && !cell.c.is_whitespace()
+        {
+            let readable = contrast.text(look.fg, look.bg);
+            if look.underline_color == look.fg {
+                look.underline_color = readable;
+            }
+            look.fg = readable;
+        }
         rows[row].keeps |=
             look.bg.is_none() || super::prompts::part(cell).is_some() || powerline(cell.c);
         let covers = |contains: &dyn Fn(Point) -> bool| {

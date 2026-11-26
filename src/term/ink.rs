@@ -17,6 +17,7 @@ pub struct Ink {
     pub selection: Hsla,
     /// None keeps each cell's own color.
     pub selection_text: Option<Hsla>,
+    pub adaptive_colors: bool,
 }
 
 impl Ink {
@@ -36,7 +37,13 @@ impl Ink {
             cursor_text: theme.cursor_text,
             selection: theme.selection_background,
             selection_text: theme.selection_foreground,
+            adaptive_colors: false,
         }
+    }
+
+    pub fn with_adaptive_colors(mut self, on: bool) -> Self {
+        self.adaptive_colors = on;
+        self
     }
 
     pub fn resolve(&self, color: Color, set: &Colors) -> Hsla {

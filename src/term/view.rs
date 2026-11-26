@@ -345,7 +345,8 @@ impl Render for TerminalView {
         let settings = SettingsStore::get(cx).clone();
         let theme = themes::active(&settings, window.appearance(), cx);
         let term = self.pty.term.lock();
-        let ink = Ink::new(&theme, term.colors());
+        let ink =
+            Ink::new(&theme, term.colors()).with_adaptive_colors(settings.adaptive_terminal_colors);
         let lit = self.finder.as_ref().map_or_else(Vec::new, |finder| {
             finder.lit(&term, cx.theme().colors.warning)
         });

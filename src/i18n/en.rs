@@ -75,6 +75,14 @@ pub const MESSAGES: &[(&str, &str)] = &[
     ("et.appearance.weight", "Weight"),
     ("et.appearance.line_height", "Line height"),
     ("et.appearance.ligatures", "Ligatures"),
+    (
+        "et.appearance.adaptive_terminal_colors",
+        "Adaptive terminal colors",
+    ),
+    (
+        "et.appearance.adaptive_terminal_colors_hint",
+        "Keeps ordinary text readable against the current terminal background.",
+    ),
     ("et.appearance.cursor", "Cursor"),
     ("et.appearance.style", "Style"),
     ("et.cursor.block", "Block"),

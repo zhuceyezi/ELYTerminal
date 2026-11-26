@@ -129,6 +129,7 @@ pub struct Settings {
     pub theme: String,
     /// The theme while the system is dark; none keeps `theme`.
     pub dark_theme: Option<String>,
+    pub adaptive_terminal_colors: bool,
     /// Themes the user made, each from Ely Dark.
     pub custom_themes: Vec<themes::CustomTheme>,
     /// A picture under the terminal; empty for none.
@@ -247,6 +248,7 @@ impl Default for Settings {
             shortcuts: crate::keymap::Shortcuts::new(),
             theme: themes::default_id().into(),
             dark_theme: None,
+            adaptive_terminal_colors: true,
             custom_themes: Vec::new(),
             background_image: String::new(),
             background_scope: BackgroundScope::Terminal,

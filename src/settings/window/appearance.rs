@@ -155,6 +155,16 @@ impl SettingsWindow {
                 )),
             )
             .when_some(self.antialias_row(cx), |font, row| font.row(row));
+        themes = themes.row(
+            SettingsRow::new(word("et.appearance.adaptive_terminal_colors"))
+                .description(word("et.appearance.adaptive_terminal_colors_hint"))
+                .control(switch(
+                    &this,
+                    "adaptive_terminal_colors",
+                    settings.adaptive_terminal_colors,
+                    |settings, on| settings.adaptive_terminal_colors = on,
+                )),
+        );
         let cursor = self.cursor_section(window, cx);
         let opacity = percent(settings.background_opacity);
         let slider = Slider::new("background_opacity", opacity)
